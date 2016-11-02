@@ -12,12 +12,15 @@ class General extends MY_Controller{
     protected $env_type = '';
     protected $env_param = array();
     protected $museum = array();
+    protected $texture = array();
    
     
     function __construct()
     {
         parent::__construct();
         $this->load->helper(array("calculate"));
+        $this->load->config("texture");
+        $this->texture = config_item("texture");
         $this->start_time = $this->post("start_time");// 20160101
         $this->end_time = $this->post("end_time");
         $this->definite_time = $this->post("definite_time");
@@ -107,7 +110,7 @@ class General extends MY_Controller{
     }
 
 
-    public function general_all_post(){
+    public function general_all_post(){ //区域详情-达标与稳定概况
         $data_standard = $this->detail_standard_post(true);
         $data_scatter = $this->data_scatter_post(true);
         $general_standard = $this->general_one($data_standard);
@@ -142,5 +145,85 @@ class General extends MY_Controller{
         return $rs;
     }
 
+    public function param_details_post(){ //区域详情-环境指标统计详情
+        $texture_data = $compliance = $standard= $rs = array();
+        $params = array("temperature","humidity","light","uv","voc");
+        $all =  $this->db->select("p.*")
+                         ->join("data_envtype_param p","p.mid=m.id")
+                         ->where("p.date >=",$this->start_time)
+                         ->where("p.date <=",$this->end_time)
+                         ->where("p.env_type",$this->env_type)
+                         ->get("museum m")
+                         ->result_array();
+
+        $env = $this->db->select("c.*,e.mid")
+            ->join("data_env_compliance c","c.eid=e.id")
+            ->where("c.date >=",$this->start_time)
+            ->where("c.date <=",$this->end_time)
+            ->where("e.env_type",$this->env_type)
+            ->get("data_env e")
+            ->result_array();
+
+        foreach ($env as $value){
+            $compliance[$value["mid"]][] = $value;
+        }
+
+        foreach ($compliance as $mid => $value){
+            $standard[$mid] = array_key_exists($mid, $standard)?$standard[$mid]:array();
+            foreach ($value as $v) {
+                foreach ($params as $p) {
+                    if($v[$p."_total"]){
+                        $standard[$mid][$p."_total"] = array_key_exists($p."_total", $standard[$mid])?$standard[$mid][$p."_total"]:0;
+                        $standard[$mid][$p."_total"] += $v[$p."_total"];
+                    }
+                    if($v[$p."_abnormal"]){
+                        $standard[$mid][$p."_abnormal"] = array_key_exists($p."_abnormal", $standard[$mid])?$standard[$mid][$p."_abnormal"]:0;
+                        $standard[$mid][$p."_abnormal"] += $v[$p."_abnormal"];
+                    }
+                }
+            }
+
+        }
+
+        foreach ($all as $item) {
+            $texture_data[$item["param"]][] = array(
+                "mid"=>$item["mid"],
+                "museum"=>$this->museum[$item["mid"]],
+                "max"=>$item["max"],
+                "min"=>$item["min"],
+                "distance"=>$item["max"] - $item["min"],
+                "middle"=>$item["middle"],
+                "average"=>$item["average"],
+                "count_abnormal"=>$item["count_abnormal"],
+                "standard"=>$item["standard"]
+            );
+        }
+
+        //print_r($texture_data);exit;
+
+        foreach ($this->texture as $k => $v){
+            foreach ($v as $param => $tt){
+                $data = array_key_exists($k,$texture_data)?$texture_data[$k]:array();
+                if($data){
+                    foreach ($data as $key => $value){
+                        if(array_key_exists($param."_total",$standard[$value["mid"]]) && $total = $standard[$value["mid"]][$param."_total"]){
+                            $abnormal = array_key_exists($param."_abnormal",$standard[$value["mid"]])?$standard[$value["mid"]][$param."_abnormal"]:0;
+                            $data[$key]["standard_percent"] = round(($total - $abnormal) / $total,2);
+                        }
+                    }
+                }
+                if(!empty($tt)){
+                    $rs[$param][] = array(
+                                            "texture"=>implode("、",$tt),
+                                            "data"=>$data
+                                          );
+                }else{
+                    $rs[$param] = $data;
+                }
+            }
+        }
+
+        $this->response($rs);
+    }
 
 }
