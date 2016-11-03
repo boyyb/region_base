@@ -13,6 +13,6 @@ $config["texture"] = array(
     5 => array("light"=>array("纸质","壁画","纺织品")),
     6 => array("light"=>array("漆木器","其他")),
     7 => array("temperature"=>array()),
-    8 => array("ul"=>array()), //紫外
+    8 => array("uv"=>array()), //紫外
     9 => array("voc"=>array())
 );

@@ -226,4 +226,93 @@ class General extends MY_Controller{
         $this->response($rs);
     }
 
+    public function museum_general_post($mid = ''){ //博物馆详情-达标与稳定概况
+        $standard = $this->db->select("c.*,e.material_humidity,e.material_light")
+                             ->join("data_env e","e.id=c.eid")
+                             ->where("e.env_type",$this->env_type)
+                             ->where("e.mid",$mid)
+                             ->where("c.date >=",$this->start_time)
+                             ->where("c.date <=",$this->end_time)
+                             ->get("data_env_compliance c")
+                             ->result_array();
+        $abnormal = $total = 0;
+
+        $texture_type = $texture_total = $texture_abnormal = array();
+        foreach ($this->texture as $k => $t){
+            foreach ($t as $p=>$t1){
+                $texture_type[$k] = $p;
+                $texture_total[$k] = $texture_abnormal[$k] = 0;
+            }
+        }
+
+        foreach ($standard as $item) {
+            foreach ($this->env_param as $param){
+                if($item[$param."_total"]){
+                    $total += $item[$param."_total"];
+                }
+                if($item[$param."_abnormal"]){
+                    $abnormal += $item[$param."_abnormal"];
+                }
+            }
+
+            foreach ($texture_type as $k => $value){
+                if($k == $item["material_humidity"]){
+                    $texture_total[$item["material_humidity"]] += $item[$texture_type[$item["material_humidity"]]."_total"];
+                    $texture_abnormal[$item["material_humidity"]] += $item[$texture_type[$item["material_humidity"]]."_abnormal"];
+                }else if($k == $item["material_light"]){
+                    $texture_total[$item["material_light"]] += $item[$texture_type[$item["material_light"]]."_total"];
+                    $texture_abnormal[$item["material_light"]] += $item[$texture_type[$item["material_light"]]."_abnormal"];
+                }else if(!in_array($value,array("humidity","light"))){
+                    $texture_total[$k] += $item[$value."_total"];
+                    $texture_abnormal[$k] += $item[$value."_abnormal"];
+                }
+
+            }
+
+        }
+        $standard_percent = round(($total - $abnormal) / $total,2); //达标率
+
+        $scatter = $this->db->select("scatter_temp,scatter_humidity,is_wave_abnormal,is_value_abnormal")
+                            ->where("date >=",$this->start_time)
+                            ->where("date <=",$this->end_time)
+                            ->where("env_type",$this->env_type)
+                            ->where("mid",$mid)
+                            ->get("data_complex")
+                            ->row_array();
+        $scatter["standard_percent"] = $standard_percent;
+
+        $params = $list = array();
+        $env_param = $this->db->select("*")
+            ->where("date >=",$this->start_time)
+            ->where("date <=",$this->end_time)
+            ->where("env_type",$this->env_type)
+            ->where("mid",$mid)
+            ->get("data_envtype_param")
+            ->result_array();
+        foreach ($env_param as $value){
+            $params[$value["param"]] = $value;
+        }
+        foreach ($this->texture as $k => $arr){
+            $data = array();
+            foreach ($arr as $p=>$v){
+                $data["type"] = $p;
+                if(!empty($v)){
+                    $data["texture"] = implode("、",$v);
+                }
+            }
+            if(array_key_exists($k, $params)){
+                $data["max"] = $params[$k]["max"];
+                $data["min"] = $params[$k]["min"];
+                $data["middle"] = $params[$k]["middle"];
+                $data["average"] = $params[$k]["average"];
+                $data["standard"] = $params[$k]["standard"];
+                $data["count_abnormal"] = $params[$k]["count_abnormal"];
+                $data["distance"] = $data["max"] - $data["min"];
+                $data["standard_percent"] = $texture_total[$k]?round(($texture_total[$k] - $texture_abnormal[$k]) / $texture_total[$k],2):0;
+            }
+            $list[] = $data;
+        }
+        print_r($list);
+    }
+
 }
