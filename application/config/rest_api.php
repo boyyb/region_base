@@ -12,7 +12,7 @@ $config['api_hosts'] = array(
     'data' => array('api_url' => 'http://127.0.0.1/region_data/', 'api_key' => '12334513', 'app_name' => '（博物馆）数据交互子系统'),
 );
 
-$config['allow_cross_domain'] = FALSE;//允许跨域
+$config['allow_cross_domain'] = TRUE;//允许跨域
 //rest支持jsonp返回
 $config['force_https'] = FALSE;//只接受https请求
 $config['enable_emulate_request'] = TRUE;//开启模拟请求
