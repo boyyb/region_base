@@ -82,7 +82,7 @@ class REST_Controller extends CI_Controller
         $controller_method = $object_called . '_' . $this->_method;
 
         if (config_item('rest_token_enable') and (!$this->_token || strlen($this->_token) < 40)) {
-            $this->response(array('error' => '没有找到合法的access_token'), 401);
+            //$this->response(array('error' => '没有找到合法的access_token'), 401);
         }
         $check_token_user = TRUE;
 
@@ -366,7 +366,7 @@ class REST_Controller extends CI_Controller
         $row = $this->rest_token->get_token($this->_token);
 
         if (!$row || !isset($row['token'])) {
-            $this->response(array('error' => 'access_token无效'), 401);
+            //$this->response(array('error' => 'access_token无效'), 401);
         }
         if (isset($row['user'])) {
             $this->_user = json_decode($row['user'], true);
@@ -374,7 +374,7 @@ class REST_Controller extends CI_Controller
         $this->_ip = $row['ip'];
 
         if ($check_token_user && !$this->_user) {
-            $this->response(array('error' => '没有登录'), 403);
+            //$this->response(array('error' => '没有登录'), 403);
         }
 
     }
