@@ -37,7 +37,8 @@ class MY_Controller extends REST_Controller
         $this->end_time = $this->get("end_time");
         $this->definite_time = $this->get("definite_time");
         $this->env_type = $this->get("env_type");
-        $this->env_param = $this->get("env_param");//array
+        $env_param = $this->get("env_param");
+        $this->env_param = explode(",",$env_param);
         if($this->definite_time){
             switch ($this->definite_time){
                 case "yesterday": //昨天
