@@ -61,7 +61,7 @@ class Login extends MY_Controller{
         }
         $result['results'] = API($api_list);//批量发出
 
-        $result ['msg'] = $row['username'] . '登录成功';
+        //$result ['msg'] = $row['username'] . '登录成功';
         //$result['permissions'] = $permissions;
         $result['is_login'] = true;
 

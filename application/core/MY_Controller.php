@@ -19,6 +19,49 @@ require APPPATH . 'third_party/REST/core/REST_Controller.php';
  */
 class MY_Controller extends REST_Controller
 {
-
+    protected $start_time = '';
+    protected $end_time = '';
+    protected $definite_time = '';
+    protected $env_type = '';
+    protected $env_param = array();
+    protected $museum = array();
+    protected $texture = array();
+    
+    function __construct(){
+    
+        parent::__construct();
+        $this->load->helper(array("calculate"));
+        $this->load->config("texture");
+        $this->texture = config_item("texture");
+        $this->start_time = $this->get("start_time");// 20160101
+        $this->end_time = $this->get("end_time");
+        $this->definite_time = $this->get("definite_time");
+        $this->env_type = $this->get("env_type");
+        $this->env_param = $this->get("env_param");//array
+        if($this->definite_time){
+            switch ($this->definite_time){
+                case "yesterday": //昨天
+                    $this->start_time = $this->end_time = date("Ymd",time() - 24*60*60);
+                    break;
+                case "before_yes": //前天
+                    $this->start_time = $this->end_time = date("Ymd",time() - 24*60*60*2);
+                    break;
+                case "week": //本周
+                    $day_num = date("w");
+                    $this->start_time = date("Ymd",time() - 24*60*60*($day_num-1));
+                    $this->end_time = date("Ymd",time() + 24*60*60*(7-$day_num));
+                    break;
+                case "month": //本月
+                    $this->start_time = date("Ym")."01";
+                    $this->end_time = date("Ym").date("t");
+                    break;
+            }
+        }
+        $museum = $this->db->select("id,name")->get("museum")->result_array();
+        foreach ($museum as $value){
+            $this->museum[$value["id"]] = $value["name"];
+        }
+    }
+    
 
 }
