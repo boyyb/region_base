@@ -24,13 +24,46 @@ class Login extends MY_Controller{
             $this->response(array('error' => '密码错误'));
         }
 
+        
+        $this->load->model('user_model');
+        // 用户行为记录
+        $result['behavior'] = $this->user_model->get_behavior($row['id']);
+        //记录登录次数
+        $this->user_model->login_count($row['id']);
+        // 权限
+        $row['permissions'] = $this->user_model->get_permissions($row['id'], $row['role_ids']);
+        $result['permissions'] = $row['permissions'];
+
+        // 同步
+        $result['results'] = $this->_sync($row);
+
         // 登录成功
         $result['is_login'] = true;
-        // 用户行为记录
-        $this->load->model('user_model');
-        $result['behavior'] = $this->user_model->get_behavior($row['id']);
+        $result ['msg'] = $row['username'] . '登录成功';
 
         $this->response($result);
+    }
+
+    // 子系统登录同步
+    function _sync($row){
+        $user_row = array(
+            'id' => $row['id'],
+            'username' => $row['username'],
+            'level' => $row['level'],
+            'real_name' => $row['real_name'],
+            'permissions' => $row['permissions'],
+            'data_scope' => '',
+            'token' => $this->_token,
+            'token_level' => 1,
+            'ip'=>$this->_ip,
+        );
+
+        $api_hosts = config_item('api_hosts');
+        $api_list = array();
+        foreach ($api_hosts as $app => $api) {
+            $api_list[] = array('post/' . $app . '/sync/login', array('auth_code' => API_encode($app, $user_row)));
+        }
+        return API($api_list);//批量发出
     }
     
 }
