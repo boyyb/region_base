@@ -2,10 +2,11 @@
 /**
  * Created by PhpStorm.
  * User: USER
- * Date: 2016/10/31
- * Time: 10:24
+ * Date: 2016/11/10
+ * Time: 11:01
  */
-class General extends MY_Controller{
+
+class Area extends MY_Controller{
 
     function __construct()
     {
@@ -20,11 +21,11 @@ class General extends MY_Controller{
             $params .= ",c.".$param."_total".",c.".$param."_abnormal";
         }
         $data_compliance = $this->db->select("m.id,c.id as cid".$params)
-                                    ->join("data_complex c","c.mid=m.id")
-                                    ->where("c.env_type",$this->env_type)
-                                    ->where("c.date",$this->date)
-                                    ->get("museum m")
-                                    ->result_array();
+            ->join("data_complex c","c.mid=m.id")
+            ->where("c.env_type",$this->env_type)
+            ->where("c.date",$this->date)
+            ->get("museum m")
+            ->result_array();
         //echo $this->db->last_query();exit;
         foreach ($data_compliance as $value){
             if($value["id"]){
@@ -37,9 +38,9 @@ class General extends MY_Controller{
         }
 
         foreach ($data_flag as $k => $value){
-                $total = array_sum($value["total"]);
-                $abnormal = array_sum($value["abnormal"]);
-                $data_standard[$k] = round(($total - $abnormal) / $total,2);
+            $total = array_sum($value["total"]);
+            $abnormal = array_sum($value["abnormal"]);
+            $data_standard[$k] = round(($total - $abnormal) / $total,2);
         }
 
         if($flag){
@@ -51,12 +52,12 @@ class General extends MY_Controller{
 
     public function data_scatter_get($flag = false){ //温湿度稳定系数
         $data = $this->db->select("c.mid,c.scatter_temperature,c.scatter_humidity")
-                         ->join("museum m","m.id=c.mid")
-                         ->where("c.date",$this->date)
-                         ->where("c.env_type",$this->env_type)
-                         ->get("data_complex c")
-                         ->result_array();
-        $datas = array();
+            ->join("museum m","m.id=c.mid")
+            ->where("c.date",$this->date)
+            ->where("c.env_type",$this->env_type)
+            ->get("data_complex c")
+            ->result_array();
+        $datas["scatter_temperature"] = $datas["scatter_humidity"] = array();
         foreach ($data as $value){
             $datas["scatter_temperature"][$value["mid"]] = $value["scatter_temperature"];
             $datas["scatter_humidity"][$value["mid"]] = $value["scatter_humidity"];
@@ -87,7 +88,7 @@ class General extends MY_Controller{
         $rs["average"] = $calculate["average"];
         foreach ($data as $k => $value){
             $rs["museum"][] = array("name"=>$this->museum[$k],"data"=>$value,"distance"=>$value - $calculate["average"]);
-            $z = ($value - $calculate["average"]) / $calculate["standard"];
+            $z = $calculate["standard"]?($value - $calculate["average"]) / $calculate["standard"]:0;
             if($z < -2){
                 $rs["attention"][] = $this->museum[$k];
             }
@@ -112,11 +113,11 @@ class General extends MY_Controller{
         }
 
         $all =  $this->db->select("p.*")
-                         ->join("data_envtype_param p","p.mid=m.id")
-                         ->where("p.date",$this->date)
-                         ->where("p.env_type",$this->env_type)
-                         ->get("museum m")
-                         ->result_array();
+            ->join("data_envtype_param p","p.mid=m.id")
+            ->where("p.date",$this->date)
+            ->where("p.env_type",$this->env_type)
+            ->get("museum m")
+            ->result_array();
 
         foreach ($all as $item) {
             $arr = array(
@@ -150,9 +151,9 @@ class General extends MY_Controller{
                 $data = array_key_exists($k,$texture_data)?$texture_data[$k]:array();
                 if(!empty($tt)){
                     $rs[$param][] = array(
-                                            "texture"=>implode("、",$tt),
-                                            "data"=>$data
-                                          );
+                        "texture"=>implode("、",$tt),
+                        "data"=>$data
+                    );
                 }else{
                     $rs[$param] = $data;
                 }
