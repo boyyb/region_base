@@ -19,13 +19,17 @@ require APPPATH . 'third_party/REST/core/REST_Controller.php';
  */
 class MY_Controller extends REST_Controller
 {
-    protected $start_time = '';
-    protected $end_time = '';
+    protected $date = '';
     protected $definite_time = '';
     protected $env_type = '';
     protected $env_param = array();
     protected $museum = array();
     protected $texture = array();
+    protected $env_type_arr = array(
+        "cabinet"=>"展柜",
+        "hall"=>"展厅",
+        "storeroom"=>"库房"
+    );
     
     function __construct(){
     
@@ -33,29 +37,38 @@ class MY_Controller extends REST_Controller
         $this->load->helper(array("calculate"));
         $this->load->config("texture");
         $this->texture = config_item("texture");
-        $this->start_time = $this->get("start_time");// 20160101
-        $this->end_time = $this->get("end_time");
         $this->definite_time = $this->get("definite_time");
-        $this->env_type = $this->get("env_type");
+        if(!$this->definite_time){
+            $this->definite_time = "yesterday";
+        }
+        $env_type = $this->get("env_type");
+        if(!$env_type){
+            $env_type = "cabinet";
+        }
+        $this->env_type = $this->env_type_arr[$env_type];
         $env_param = $this->get("env_param");
+        if(!$env_param){
+            $env_param = "temperature,humidity";
+        }
         $this->env_param = explode(",",$env_param);
         if($this->definite_time){
             switch ($this->definite_time){
                 case "yesterday": //昨天
-                    $this->start_time = $this->end_time = date("Ymd",time() - 24*60*60);
+                    $yes = date("Ymd",strtotime("-1 day"));
+                    $this->date = "D".$yes;
                     break;
                 case "before_yes": //前天
-                    $this->start_time = $this->end_time = date("Ymd",time() - 24*60*60*2);
+                    $by = date("Ymd",strtotime("-2 day"));
+                    $this->date = "D".$by;
                     break;
                 case "week": //本周
-                    $day_num = date("w");
-                    $this->start_time = date("Ymd",time() - 24*60*60*($day_num-1));
-                    $this->end_time = date("Ymd",time() + 24*60*60*(7-$day_num));
+                    $this->date = "W".date("Y").date("W");
                     break;
                 case "month": //本月
-                    $this->start_time = date("Ym")."01";
-                    $this->end_time = date("Ym").date("t");
+                    $this->date = "M".date("Y").date("m");
                     break;
+                default:
+                    $this->date = "D".$this->definite_time;
             }
         }
         $museum = $this->db->select("id,name")->get("museum")->result_array();
