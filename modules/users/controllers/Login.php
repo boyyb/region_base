@@ -12,13 +12,10 @@ class Login extends MY_Controller{
         $result = array();
         $user = $this->post('user');
         $pwd = $this->post('pwd');
-        $ip = $this->post('ip');
-//        print_r($_REQUEST);
         if (empty($user) || empty($pwd)) {
             $this->response(array('error' => '请输入用户名和密码'));
         }
-        $m = M('user');
-        $row = $m->find("username='" . $user . "'");
+        $row = $this->db->where(array('username'=>$user))->get("user")->row_array();
         if (!$row) {
             $this->response(array('error' => '不存在此用户'));
         }
@@ -27,27 +24,34 @@ class Login extends MY_Controller{
             $this->response(array('error' => '密码错误'));
         }
 
-        $ip = $this->_ip;
-        if($ip){
-            $str = substr($ip,0,7);
-            if($str == "192.168"||$ip == "127.0.0.1"){
-                $this->log_in($row);
-            }else{
-                //$this->check_ip($row,$ip);
-            }
-        }
+        
+        $this->load->model('user_model');
+        // 用户行为记录
+        $result['behavior'] = $this->user_model->get_behavior($row['id']);
+        //记录登录次数
+        $this->user_model->login_count($row['id']);
+        // 权限
+        $row['permissions'] = $this->user_model->get_permissions($row['id'], $row['role_ids']);
+        $result['permissions'] = $row['permissions'];
+
+        // 同步
+        $result['results'] = $this->_sync($row);
+
+        // 登录成功
+        $result['is_login'] = true;
+        $result ['msg'] = $row['username'] . '登录成功';
+
+        $this->response($result);
     }
 
-    function log_in($row){
-        //$m = M('user');
-        //$m->login_count($row['id']);//记录登录次数
-        //$permissions = $m->get_permissions($row['id'], $row['role_ids']);//array('环境监测', '系统管理', '环境监测.概览', '环境监测.概览.新增');
+    // 子系统登录同步
+    function _sync($row){
         $user_row = array(
             'id' => $row['id'],
             'username' => $row['username'],
             'level' => $row['level'],
             'real_name' => $row['real_name'],
-            //'permissions' => $permissions,
+            'permissions' => $row['permissions'],
             'data_scope' => '',
             'token' => $this->_token,
             'token_level' => 1,
@@ -59,13 +63,7 @@ class Login extends MY_Controller{
         foreach ($api_hosts as $app => $api) {
             $api_list[] = array('post/' . $app . '/sync/login', array('auth_code' => API_encode($app, $user_row)));
         }
-        $result['results'] = API($api_list);//批量发出
-
-        //$result ['msg'] = $row['username'] . '登录成功';
-        //$result['permissions'] = $permissions;
-        $result['is_login'] = true;
-
-        $this->response($result);
+        return API($api_list);//批量发出
     }
     
 }

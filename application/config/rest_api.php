@@ -9,7 +9,6 @@ $config['local_api'] = 'base';//本地api名
 //api列表
 $config['api_hosts'] = array(
     'base' => array('api_url' => 'http://127.0.0.1/region_base/', 'api_key' => '12334513', 'app_name' => '基础及用户认证中心'),
-    'data' => array('api_url' => 'http://127.0.0.1/region_data/', 'api_key' => '12334513', 'app_name' => '（博物馆）数据交互子系统'),
 );
 
 $config['allow_cross_domain'] = TRUE;//允许跨域
