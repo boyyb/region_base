@@ -40,7 +40,7 @@ class Area extends MY_Controller{
         foreach ($data_flag as $k => $value){
             $total = array_sum($value["total"]);
             $abnormal = array_sum($value["abnormal"]);
-            $data_standard[$k] = round(($total - $abnormal) / $total,2);
+            $data_standard[$k] = $total?round(($total - $abnormal) / $total,2):0;
         }
 
         if($flag){
@@ -118,7 +118,7 @@ class Area extends MY_Controller{
             ->where("p.env_type",$this->env_type)
             ->get("museum m")
             ->result_array();
-
+        $data_tables = array();
         foreach ($all as $item) {
             $arr = array(
                 "mid"=>$item["mid"],
@@ -132,6 +132,12 @@ class Area extends MY_Controller{
                 "standard"=>$item["standard"],
                 "compliance"=>100*$item["compliance"]."%"
             );
+            $data_tables[$item["param"]]["xdata"][] = $arr["museum"];
+            $data_tables[$item["param"]]["ydistance"][] = $arr["distance"];
+            $data_tables[$item["param"]]["ycompliance"][] = $arr["compliance"];
+            $data_tables[$item["param"]]["ycount_abnormal"][] = $arr["count_abnormal"];
+            $data_tables[$item["param"]]["yaverage"][] = $arr["average"];
+            $data_tables[$item["param"]]["ystandard"][] = $arr["standard"];
             if($item["wave"]){
                 list($w1,$w2,$w3,$w4) = explode(",",$item["wave"]);
                 $arr["wave"] = $w1." - ".$w2;
@@ -141,7 +147,8 @@ class Area extends MY_Controller{
                 }
             }
 
-            $texture_data[$item["param"]][] = $arr;
+            $texture_data[$item["param"]]["list"][] = $arr;
+
         }
 
         //print_r($texture_data);exit;
@@ -149,6 +156,7 @@ class Area extends MY_Controller{
         foreach ($texture as $k => $v){
             foreach ($v as $param => $tt){
                 $data = array_key_exists($k,$texture_data)?$texture_data[$k]:array();
+                $data["table"] = array_key_exists($k,$data_tables)?$data_tables[$k]:array();
                 if(!empty($tt)){
                     $rs[$param][] = array(
                         "texture"=>implode("、",$tt),

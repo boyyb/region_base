@@ -25,6 +25,11 @@ class MY_Controller extends REST_Controller
     protected $env_param = array();
     protected $museum = array();
     protected $texture = array();
+    protected $env_type_arr = array(
+        "cabinet"=>"展柜",
+        "hall"=>"展厅",
+        "storeroom"=>"库房"
+    );
     
     function __construct(){
     
@@ -33,8 +38,18 @@ class MY_Controller extends REST_Controller
         $this->load->config("texture");
         $this->texture = config_item("texture");
         $this->definite_time = $this->get("definite_time");
-        $this->env_type = $this->get("env_type");
+        if(!$this->definite_time){
+            $this->definite_time = "yesterday";
+        }
+        $env_type = $this->get("env_type");
+        if(!$env_type){
+            $env_type = "cabinet";
+        }
+        $this->env_type = $this->env_type_arr[$env_type];
         $env_param = $this->get("env_param");
+        if(!$env_param){
+            $env_param = "temperature,humidity";
+        }
         $this->env_param = explode(",",$env_param);
         if($this->definite_time){
             switch ($this->definite_time){
