@@ -40,7 +40,7 @@ class situation extends MY_Controller{
         }
         $totalstr = "(".substr($totalstr, 1).")";
         $abnormalstr = "(".substr($abnormalstr, 1).")";
-        $sp = "(".$totalstr."-".$abnormalstr.")/$totalstr"."as standard_percent";//达标率计算公式
+        $sp = "(".$totalstr."-".$abnormalstr.")/$totalstr "." as standard_percent";//达标率计算公式
 
         //统计各博物馆达标率
         $dc_datas = $this->db
@@ -59,7 +59,7 @@ class situation extends MY_Controller{
             4=>array("name"=>"<95%","min"=>0,"max"=>0.95)
         );
 
-        //按照约定格式返回
+        //构建返回数据
         foreach($sp as $k=>$v){
             foreach($data as $v1){
                 if($v1<$v['max'] && $v1>=$v['min']) $data1[$k][] = $v1;
@@ -164,7 +164,7 @@ class situation extends MY_Controller{
         }
         $totalstr = "(".substr($totalstr, 1).")";
         $abnormalstr = "(".substr($abnormalstr, 1).")";
-        $sp = "(".$totalstr."-".$abnormalstr.")/$totalstr"."as standard_percent";
+        $sp = "(".$totalstr."-".$abnormalstr.")/$totalstr "." as standard_percent";
         $dc_datas = $this->db
             ->select("mid,scatter_temperature,scatter_humidity,".$sp)
             ->where("date",$this->date)
@@ -172,7 +172,7 @@ class situation extends MY_Controller{
             ->order_by("mid")
             ->get("data_complex")
             ->result_array();
-
+        if(!$dc_datas) die(json_encode(array()));
         //统计各博物馆日波动超标情况 不剔除异常值
         $wave_data = array();
         $dep_datas = $this->db
@@ -238,5 +238,5 @@ class situation extends MY_Controller{
         }
     }
 
-    
+
 }

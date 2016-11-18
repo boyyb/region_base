@@ -1,66 +1,77 @@
 <?php
 class history extends MY_Controller{
-    public $mids = array();
-    public $museum = array();
+
+    public $mids = array(); //存放参与对比博物馆的id
+    public $date_start = null; //查询开始日期
+    public $date_end = null; //查询结束日期
+    public $date_list = array(); //日期列表
+
     public function __construct(){
         parent::__construct();
-        $mid = $this->get("mid"); //?mid=2,2,4
-        $mids = explode(",",$mid);
-        $this->mids = $mids;//参与对比的博物馆id
-        $this->get_museum_info();
+        $this->mids = explode(",",$this->get("mids")); //mids=2,3,4
+        $date = $this->get("definite_time"); //接收日期字符串
+        switch ($date){
+            case "yesterday": //昨天
+                $this->date_start = date("Ymd",strtotime('-1 day'));
+                $this->date_end = $this->date_start;
+                break;
+            case "before_yes": //前天
+                $this->date_start = date("Ymd",strtotime('-2 day'));
+                $this->date_end = $this->date_start;
+                break;
+            case "week": //本周
+                $this->date_start = date("Ymd",mktime(0,0,0,date('m'),date('d')-date('w')+1,date('y')));
+                $this->date_end = date("Ymd",strtotime('-1 day'));
+                break;
+            case "month": //本月
+                $this->date_start = date("Ymd",mktime(0,0,0,date('m'),1,date('y')));
+                $this->date_end = date("Ymd",strtotime('-1 day'));
+                break;
+            default: $this->date_end = $this->date_start = $date; //指定某一天
+        }
+        $this->date_list = $this->_date_list($this->date_start,$this->date_end);
     }
 
-    protected function date_list($s,$e)
-    {
+    //生成日期列表
+    protected function _date_list($s,$e){
         $date = array();
         for ($i = strtotime($s); $i <= strtotime($e); $i += 86400) {
             $date[] = date("Ymd", $i);
         }
         return $date;
     }
-    //博物馆数据 id=>名称
-    protected function get_museum_info(){
-        $datas = $this->db->order_by("id asc")->get('museum')->result_array();
-        foreach($datas as $v){
-            $this->museum[$v['id']] = $v['name'];
-        }
-    }
-    //历史达标率
-    public function standard_percent(){
-        $env = $this->env_type = "展厅";
-        $date_start = $this->start_time = 20161024;
-        $date_end = $this->end_time = 20161028;
-        $date_list = $this->date_list($date_start,$date_end);
-        $param = $this->env_param = array("temperature", "humidity", "light", "uv", "voc");
-        $mids = $this->mids = array(2,3,4);
 
+    //历史达标率-多博物馆对比
+    public function standard_percent(){
+        //构建达标率计算字符串
         $totalstr = '';
         $abnormalstr = '';
-        foreach ($param as $v) {
+        foreach ($this->env_param as $v) {
             $totalstr .= "+{$v}_total";
             $abnormalstr .= "+{$v}_abnormal";
         }
         $totalstr = "(".substr($totalstr, 1).")";
         $abnormalstr = "(".substr($abnormalstr, 1).")";
-        $sp = "(".$totalstr."-".$abnormalstr.")/$totalstr"."as standard_percent";
+        $sp = "(".$totalstr."-".$abnormalstr.")/$totalstr "." as standard_percent";
 
-        //各个博物馆分日期显示达标率
-        foreach($mids as $mid) {
-            foreach($date_list as $date){
+        //各个博物馆分日期显示达标率 按照每天统计
+        foreach($this->mids as $mid) {
+            foreach($this->date_list as $date){
                 $dc_datas = $this->db
-                    ->select("mid,date," . $sp)
-                    ->where("date", $date)
-                    ->where("env_type", $env)
+                    ->select("mid,date,{$totalstr} as total,{$sp}")
+                    ->where("date", "D".$date)
+                    ->where("env_type", $this->env_type)
                     ->where("mid", $mid)
                     ->get("data_complex")
                     ->result_array();
-                if($dc_datas) $datas[$mid][$date] = $dc_datas[0]['standard_percent'];
+                if($dc_datas && $dc_datas[0]['total']) $datas[$mid][$date] = (float)$dc_datas[0]['standard_percent'];
                 else $datas[$mid][$date] = null;
             }
         }
-
+        //构建返回数据格式
         foreach($datas as $k => $v){
             $ret[] = array(
+                "mid"=>$k,
                 "name"=>$this->museum[$k],
                 "data"=>array_values($v)
             );
@@ -69,44 +80,37 @@ class history extends MY_Controller{
         echo json_encode($ret,JSON_UNESCAPED_UNICODE);
     }
 
-    //稳定性（温度/湿度）
+    //稳定性（温度/湿度）- 多博物馆对比
     public function stability(){
-        $env = $this->env_type = "展厅";
-        $date_start = $this->start_time = 20161024;
-        $date_end = $this->end_time = 20161028;
-        $date_list = $this->date_list($date_start,$date_end);
-        //$param = $this->env_param = array("temperature", "humidity", "light", "uv", "voc");
-        $mids = $this->mids = array(2,3,4);//测试数据
-
         //各个博物馆分日期显示温度湿度离散数据
-        foreach($mids as $mid) {
-            foreach($date_list as $date){
+        foreach($this->mids as $mid) {
+            foreach($this->date_list as $date){
                 $dc_datas = $this->db
                     ->select("mid,date,scatter_temperature,scatter_humidity")
-                    ->where("date", $date)
-                    ->where("env_type", $env)
+                    ->where("date", "D".$date)
+                    ->where("env_type", $this->env_type)
                     ->where("mid", $mid)
                     ->get("data_complex")
                     ->result_array();
-                if($dc_datas) {
-                    $tc_datas[$mid][$date] = $dc_datas[0]['scatter_temperature'];
-                    $hc_datas[$mid][$date] = $dc_datas[0]['scatter_humidity'];
-                } else {
-                    $tc_datas[$mid][$date] = null;
-                    $hc_datas[$mid][$date] = null;
-                }
+                if($dc_datas && $dc_datas[0]['scatter_temperature']) $tc_datas[$mid][$date] = (float)$dc_datas[0]['scatter_temperature'];
+                else $tc_datas[$mid][$date] = null;
+
+                if($dc_datas && $dc_datas[0]['scatter_humidity']) $hc_datas[$mid][$date] = (float)$dc_datas[0]['scatter_humidity'];
+                else $hc_datas[$mid][$date] = null;
             }
         }
-
+        //温度
         foreach($tc_datas as $k=>$v){
             $ret['temperature_scatter'][] = array(
+                "mid"=>$k,
                 "name"=>$this->museum[$k],
                 "data"=>array_values($v)
             );
         }
-
+        //湿度
         foreach($hc_datas as $k=>$v){
             $ret['humidity_scatter'][] = array(
+                "mid"=>$k,
                 "name"=>$this->museum[$k],
                 "data"=>array_values($v)
             );
@@ -115,7 +119,6 @@ class history extends MY_Controller{
         var_dump($ret);
         echo json_encode($ret,JSON_UNESCAPED_UNICODE);
     }
-
 
 
 }
