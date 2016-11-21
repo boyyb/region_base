@@ -140,6 +140,10 @@ class Area extends MY_Controller{
             $data_tables[$item["param"]]["ystandard"][] = $arr["standard"];
             if($item["wave"]){
                 list($w1,$w2,$w3,$w4) = explode(",",$item["wave"]);
+                $data_tables[$item["param"]]["ywave"]["base"][] = $w1;
+                $data_tables[$item["param"]]["ywave"]["add"][] = $w2 - $w1;
+                $data_tables[$item["param"]]["ywave_normal"]["base"][] = $w3;
+                $data_tables[$item["param"]]["ywave_normal"]["add"][] = $w4 - $w3;
                 $arr["wave"] = $w1." - ".$w2;
                 $arr["wave_normal"] = $w3." - ".$w4;
                 if($item["wave_status"] !== null){
