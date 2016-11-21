@@ -95,7 +95,7 @@ class details extends MY_Controller{
                             else $wave_abnormal2 = $dwa_datas; //剔除异常值的波动超标数据
                         }
                     }
-                }else{ // 周/月数据
+                }elseif($this->date_end >= $this->date_start){ // 周/月数据
                     foreach($this->date_list as $date) {
                         $dep_data = $this->db
                             ->where("date", "D" . $date)
@@ -200,7 +200,7 @@ class details extends MY_Controller{
             }
         }
 
-        echo json_encode($ret,JSON_UNESCAPED_UNICODE);
+        $this->response($ret);
     }
 
 

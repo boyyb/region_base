@@ -30,6 +30,7 @@ class history extends MY_Controller{
             default: $this->date_end = $this->date_start = $date; //指定某一天
         }
         $this->date_list = $this->_date_list($this->date_start,$this->date_end);
+        if($this->date_end < $this->date_start) $this->response(array());// 跨周/月
     }
 
     //生成日期列表
@@ -78,7 +79,7 @@ class history extends MY_Controller{
             );
         }
 
-        echo json_encode($ret,JSON_UNESCAPED_UNICODE);
+        $this->response($ret);
     }
 
     //稳定性（温度/湿度）- 多博物馆对比
@@ -119,7 +120,7 @@ class history extends MY_Controller{
             );
         }
 
-        echo json_encode($ret,JSON_UNESCAPED_UNICODE);
+        $this->response($ret);
     }
 
 

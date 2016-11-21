@@ -69,7 +69,7 @@ class situation extends MY_Controller{
                 "name"=>$v['name']);
         }
 
-        echo json_encode($sp_data,JSON_UNESCAPED_UNICODE);
+        $this->response($sp_data);
     }
 
     //环形图-稳定性
@@ -129,7 +129,7 @@ class situation extends MY_Controller{
         $ret['temperature_scatter'] = $ts_data;
         $ret['humidity_scatter'] = $hs_data;
 
-        echo json_encode($ret,JSON_UNESCAPED_UNICODE);
+        $this->response($ret);
     }
 
     //地图
@@ -228,9 +228,9 @@ class situation extends MY_Controller{
                     }
                 }
             }
-            echo json_encode($c_data,JSON_UNESCAPED_UNICODE);
+            $this->response($c_data);
         }else{
-            echo json_encode($map_data,JSON_UNESCAPED_UNICODE);
+            $this->response($map_data);
         }
     }
 
@@ -244,7 +244,7 @@ class situation extends MY_Controller{
             ->where("env_type",$this->env_type)
             ->count_all_results("data_complex");
 
-        echo json_encode($data,JSON_UNESCAPED_UNICODE);
+        $this->response($data);
     }
 
 }
