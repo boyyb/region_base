@@ -21,9 +21,6 @@ class situation extends MY_Controller{
                 break;
             default: $this->date = "D".$date_str; //某一天
         }
-        if(!$this->env_type || !$this->env_param || !$this->definite_time)
-            die("缺少参数");
-
     }
 
     //环形图-达标率
@@ -65,10 +62,10 @@ class situation extends MY_Controller{
                 if($v1<$v['max'] && $v1>=$v['min']) $data1[$k][] = $v1;
             }
             if(isset($data1[$k])) $sp_data[] = array(
-                "value"=>(string)count($data1[$k]),
+                "value"=>count($data1[$k]),
                 "name"=>$v['name']);
             else $sp_data[] = array(
-                "value"=>"0",
+                "value"=>0,
                 "name"=>$v['name']);
         }
 
@@ -111,10 +108,10 @@ class situation extends MY_Controller{
                 if($v1<=$v['max'] && $v1>$v['min']) $data1[$k][] = $v1;
             }
             if(isset($data1[$k])) $ts_data[] = array(
-                "value"=>(string)count($data1[$k]),
+                "value"=>count($data1[$k]),
                 "name"=>$v['name']);
             else $ts_data[] = array(
-                "value"=>"0",
+                "value"=>0,
                 "name"=>$v['name']);
         }
         //湿度统计
@@ -123,10 +120,10 @@ class situation extends MY_Controller{
                 if($v1<=$v['max'] && $v1>$v['min']) $data2[$k][] = $v1;
             }
             if(isset($data2[$k])) $hs_data[] = array(
-                "value"=>(string)count($data2[$k]),
+                "value"=>count($data2[$k]),
                 "name"=>$v['name']);
             else $hs_data[] = array(
-                "value"=>"0",
+                "value"=>0,
                 "name"=>$v['name']);
         }
         $ret['temperature_scatter'] = $ts_data;
@@ -214,9 +211,9 @@ class situation extends MY_Controller{
                 "name"=>$mdata[$v['mid']]['name'],
                 "map_name"=>app_config("map_name"),
                 "grid"=>array((float)$mdata[$v['mid']]['longitude'],(float)$mdata[$v['mid']]['latitude']),
-                "compliance"=>round($v['standard_percent'],3)*100 . "%",
-                "temperature_scatter"=>$v['scatter_temperature']*100 . "%",
-                "humidity_scatter"=>$v['scatter_humidity']*100 . "%",
+                "compliance"=>$v['standard_percent'] !== null?round($v['standard_percent'],3)*100 . "%":null,
+                "temperature_scatter"=>$v['scatter_temperature']?$v['scatter_temperature']*100 . "%":null,
+                "humidity_scatter"=>$v['scatter_humidity']?$v['scatter_humidity']*100 . "%":null,
                 "is_wave_abnormal"=>isset($wave_data[$v['mid']])?"是":"无",
                 "is_value_abnormal"=>isset($abnormal_data[$v['mid']])?"是":"无"
             );
@@ -237,5 +234,17 @@ class situation extends MY_Controller{
         }
     }
 
+    //统计博物馆数量统计
+    public function statistic(){
+        $data = array();
+        $data["total"] = $this->db->count_all_results("museum");
+        $data['show'] = $this->db
+            ->select("distinct(mid)")
+            ->where("date",$this->date)
+            ->where("env_type",$this->env_type)
+            ->count_all_results("data_complex");
+
+        echo json_encode($data,JSON_UNESCAPED_UNICODE);
+    }
 
 }
