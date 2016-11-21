@@ -42,7 +42,7 @@ class history extends MY_Controller{
     }
 
     //历史达标率-多博物馆对比
-    public function standard_percent(){
+    public function compliance(){
         //构建达标率计算字符串
         $totalstr = '';
         $abnormalstr = '';
@@ -64,7 +64,8 @@ class history extends MY_Controller{
                     ->where("mid", $mid)
                     ->get("data_complex")
                     ->result_array();
-                if($dc_datas && $dc_datas[0]['total']) $datas[$mid][$date] = (float)$dc_datas[0]['standard_percent'];
+                if($dc_datas && $dc_datas[0]['total'])
+                    $datas[$mid][$date] = round($dc_datas[0]['standard_percent'],3);
                 else $datas[$mid][$date] = null;
             }
         }
@@ -76,7 +77,7 @@ class history extends MY_Controller{
                 "data"=>array_values($v)
             );
         }
-        var_dump($ret);
+
         echo json_encode($ret,JSON_UNESCAPED_UNICODE);
     }
 
@@ -92,10 +93,12 @@ class history extends MY_Controller{
                     ->where("mid", $mid)
                     ->get("data_complex")
                     ->result_array();
-                if($dc_datas && $dc_datas[0]['scatter_temperature']) $tc_datas[$mid][$date] = (float)$dc_datas[0]['scatter_temperature'];
+                if($dc_datas && $dc_datas[0]['scatter_temperature'])
+                    $tc_datas[$mid][$date] = (float)$dc_datas[0]['scatter_temperature'];
                 else $tc_datas[$mid][$date] = null;
 
-                if($dc_datas && $dc_datas[0]['scatter_humidity']) $hc_datas[$mid][$date] = (float)$dc_datas[0]['scatter_humidity'];
+                if($dc_datas && $dc_datas[0]['scatter_humidity'])
+                    $hc_datas[$mid][$date] = (float)$dc_datas[0]['scatter_humidity'];
                 else $hc_datas[$mid][$date] = null;
             }
         }
@@ -116,7 +119,6 @@ class history extends MY_Controller{
             );
         }
 
-        var_dump($ret);
         echo json_encode($ret,JSON_UNESCAPED_UNICODE);
     }
 

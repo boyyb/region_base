@@ -38,15 +38,7 @@ class details extends MY_Controller{
         $this->mids = explode(",",$this->get("mids")); //mids=2,3,4
         $this->date_list = $this->_date_list($this->date_start,$this->date_end);
 
-
-        var_dump($this->date_list);
     }
-
-/*if($v=="humidity") array_push($params,1,2,3,10); //加混合材质 10
-elseif($v=="light") array_push($params,4,5,6,11); //加混合材质 11
-elseif($v=="temperature") array_push($params,7);
-elseif($v=="uv") array_push($params,8);
-elseif($v=="voc") array_push($params,9);*/
 
     //生成日期列表
     protected function _date_list($s,$e){
@@ -57,8 +49,8 @@ elseif($v=="voc") array_push($params,9);*/
         return $date;
     }
 
-    //温度/uv/voc
-    public function unclassified_data(){
+    //数据统计
+    protected function _data($param_id){
         $data = array();
         //各博物馆均值、极差、标准差、异常值、达标率...
         foreach($this->mids as $mid){
@@ -66,8 +58,8 @@ elseif($v=="voc") array_push($params,9);*/
                 ->where("date",$this->date)
                 ->where("env_type",$this->env_type)
                 ->where("mid",$mid)
-                ->where("param",7)
-                ->get("data_envtype_param_copy")
+                ->where("param",$param_id)
+                ->get("data_envtype_param")
                 ->result_array();
             $datas[$mid] = isset($dep_datas[0])?$dep_datas[0]:null;
         }
@@ -82,61 +74,61 @@ elseif($v=="voc") array_push($params,9);*/
                     ->get("data_abnormal")
                     ->result_array();
             }
-            //日波动统计(天数据直接取值，周月数据分别统计天)
+            //日波动统计(天数据直接取值，周/月数据按天分别统计)
             $wave_abnormal = $wave_abnormal2 = array();
             $wave_min = $wave_max = $wave_min2 = $wave_max2 = null;
-            if($this->date_start == $this->date_end){ //天数据
-                $wave_min = explode(",",$v['wave'])[0];
-                $wave_max = explode(",",$v['wave'])[1];
-                $wave_min2 = explode(",",$v['wave'])[2];
-                $wave_max2 = explode(",",$v['wave'])[3];
-                if($v['wave_status']>0){//存在波动超标
-                    foreach(array(0,1) as $type){
-                        $dwa_datas = $this->db
-                            ->select("val,env_name,date")
-                            ->where("depid",$v['id'])
-                            ->where("type",$type)
-                            ->get("data_wave_abnormal")
-                            ->result_array();
-                        if($type == 0) $wave_abnormal = $dwa_datas;
-                        else $wave_abnormal2 = $dwa_datas; //剔除异常值的波动超标数据
-                    }
-                }
-            }else{ // 周/月数据
-                foreach($this->date_list as $date) {
-                    $dep_data = $this->db
-                        ->where("date", "D" . $date)
-                        ->where("env_type", $this->env_type)
-                        ->where("mid", $mid)
-                        ->where("param", 7)
-                        ->get("data_envtype_param_copy")
-                        ->result_array();
-                    if(!$dep_data) continue;
-                    var_dump($dep_data);
-                    $wave_arr['min'][] = explode(",", $dep_data[0]['wave'])[0];
-                    $wave_arr['max'][] = explode(",", $dep_data[0]['wave'])[1];
-                    $wave_arr['min2'][] = explode(",", $dep_data[0]['wave'])[2];
-                    $wave_arr['max2'][] = explode(",", $dep_data[0]['wave'])[3];
-                    if($dep_data[0]['wave_status']>0){
+            if(in_array($param_id,array(1,2,3,7))){ //仅计算温湿度
+                if($this->date_start == $this->date_end){ //天数据
+                    $wave_min = explode(",",$v['wave'])[0];
+                    $wave_max = explode(",",$v['wave'])[1];
+                    $wave_min2 = explode(",",$v['wave'])[2];
+                    $wave_max2 = explode(",",$v['wave'])[3];
+                    if($v['wave_status']>0){//存在波动超标
                         foreach(array(0,1) as $type){
                             $dwa_datas = $this->db
                                 ->select("val,env_name,date")
-                                ->where("depid",$dep_data[0]['id'])
+                                ->where("depid",$v['id'])
                                 ->where("type",$type)
                                 ->get("data_wave_abnormal")
                                 ->result_array();
-                            if($type == 0) $wave_abnormal = array_merge($wave_abnormal,$dwa_datas);
-                            else $wave_abnormal2 = array_merge($wave_abnormal2,$dwa_datas);
+                            if($type == 0) $wave_abnormal = $dwa_datas;
+                            else $wave_abnormal2 = $dwa_datas; //剔除异常值的波动超标数据
+                        }
+                    }
+                }else{ // 周/月数据
+                    foreach($this->date_list as $date) {
+                        $dep_data = $this->db
+                            ->where("date", "D" . $date)
+                            ->where("env_type", $this->env_type)
+                            ->where("mid", $mid)
+                            ->where("param", 7)
+                            ->get("data_envtype_param")
+                            ->result_array();
+                        if(!$dep_data) continue;
+                        $wave_arr['min'][] = explode(",", $dep_data[0]['wave'])[0];
+                        $wave_arr['max'][] = explode(",", $dep_data[0]['wave'])[1];
+                        $wave_arr['min2'][] = explode(",", $dep_data[0]['wave'])[2];
+                        $wave_arr['max2'][] = explode(",", $dep_data[0]['wave'])[3];
+                        if($dep_data[0]['wave_status']>0){
+                            foreach(array(0,1) as $type){
+                                $dwa_datas = $this->db
+                                    ->select("val,env_name,date")
+                                    ->where("depid",$dep_data[0]['id'])
+                                    ->where("type",$type)
+                                    ->get("data_wave_abnormal")
+                                    ->result_array();
+                                if($type == 0) $wave_abnormal = array_merge($wave_abnormal,$dwa_datas);
+                                else $wave_abnormal2 = array_merge($wave_abnormal2,$dwa_datas);
+                            }
                         }
                     }
                 }
-                $wave_min = isset($wave_arr['min'])?min($wave_arr['min']):null;
-                $wave_max = isset($wave_arr['max'])?max($wave_arr['max']):null;
-                $wave_min2 = isset($wave_arr['min2'])?min($wave_arr['min2']):null;
-                $wave_max2 = isset($wave_arr['max2'])?max($wave_arr['max2']):null;
-
-
             }
+            //各自波动数据取并集
+            $wave_min = isset($wave_arr['min'])?min($wave_arr['min']):null;
+            $wave_max = isset($wave_arr['max'])?max($wave_arr['max']):null;
+            $wave_min2 = isset($wave_arr['min2'])?min($wave_arr['min2']):null;
+            $wave_max2 = isset($wave_arr['max2'])?max($wave_arr['max2']):null;
 
             $data[] = array(
                 "mid"=>$mid,
@@ -146,7 +138,7 @@ elseif($v=="voc") array_push($params,9);*/
                 "average"=>$v['average'],
                 "middle"=>$v['middle'],
                 "distance"=>(string)($v["max"]-$v['min']),
-                "standard_percent"=>$v['compliance'],
+                "compliance"=>$v['compliance']*100 . "%",
                 "standard"=>$v['standard'],
                 "count_abnormal"=>$v['count_abnormal'],
                 "value_abnormal"=>$value_abnormal,
@@ -159,118 +151,57 @@ elseif($v=="voc") array_push($params,9);*/
             );
         }
 
-        var_dump($data);
-        echo json_encode($data,JSON_UNESCAPED_UNICODE);
+        return $data;
     }
 
-    //湿度
-    public function humidity(){
-        $data = array();
-        //各博物馆均值、极差、标准差、异常值、达标率...
-        foreach($this->mids as $mid){
-            $dep_datas = $this->db
-                ->where("date",$this->date)
-                ->where("env_type",$this->env_type)
-                ->where("mid",$mid)
-                ->where("param",7)
-                ->get("data_envtype_param_copy")
-                ->result_array();
-            $datas[$mid] = isset($dep_datas[0])?$dep_datas[0]:null;
-        }
-        foreach($datas as $mid=>$v){
-            if(!$v) continue;
-            //异常值统计
-            $value_abnormal = array();
-            if($v['count_abnormal']){
-                $value_abnormal = $this->db
-                    ->select("CONCAT(`date`,\" \",`time`) as date,equip_no,val")
-                    ->where("depid",$v['id'])
-                    ->get("data_abnormal")
-                    ->result_array();
+    //数据调用接口函数
+    public function data(){
+        foreach($this->env_param as $param){
+            if($param == "temperature"){
+                $ret['temperature'] = $this->_data(7);
+            }elseif($param == "uv"){
+                $ret['uv'] = $this->_data(8);
+            }elseif($param == "voc"){
+                $ret['voc'] = $this->_data(9);
+            }elseif($param == "humidity"){
+                $ret['humidity'][] = array(
+                    "texture"=>"石质、陶器、瓷器",
+                    "data"=>$this->_data(1)
+                );
+                $ret['humidity'][] = array(
+                    "texture"=>"铁质、青铜",
+                    "data"=>$this->_data(2)
+                );
+                $ret['humidity'][] = array(
+                    "texture"=>"纸质、壁画、纺织品、漆木器、其他",
+                    "data"=>$this->_data(3)
+                );
+                $ret['humidity'][] = array(
+                    "texture"=>"混合材质",
+                    "data"=>$this->_data(10)
+                );
+            }elseif($param == "light"){
+                $ret['light'][] = array(
+                    "texture"=>"石质、陶器、瓷器、铁质、青铜",
+                    "data"=>$this->_data(4)
+                );
+                $ret['light'][] = array(
+                    "texture"=>"纸质、壁画、纺织品",
+                    "data"=>$this->_data(5)
+                );
+                $ret['light'][] = array(
+                    "texture"=>"漆木器、其他",
+                    "data"=>$this->_data(6)
+                );
+                $ret['light'][] = array(
+                    "texture"=>"混合材质",
+                    "data"=>$this->_data(11)
+                );
             }
-            //日波动统计(天数据直接取值，周月数据分别统计天)
-            $wave_abnormal = $wave_abnormal2 = array();
-            $wave_min = $wave_max = $wave_min2 = $wave_max2 = null;
-            if($this->date_start == $this->date_end){ //天数据
-                $wave_min = explode(",",$v['wave'])[0];
-                $wave_max = explode(",",$v['wave'])[1];
-                $wave_min2 = explode(",",$v['wave'])[2];
-                $wave_max2 = explode(",",$v['wave'])[3];
-                if($v['wave_status']>0){//存在波动超标
-                    foreach(array(0,1) as $type){
-                        $dwa_datas = $this->db
-                            ->select("val,env_name,date")
-                            ->where("depid",$v['id'])
-                            ->where("type",$type)
-                            ->get("data_wave_abnormal")
-                            ->result_array();
-                        if($type == 0) $wave_abnormal = $dwa_datas;
-                        else $wave_abnormal2 = $dwa_datas; //剔除异常值的波动超标数据
-                    }
-                }
-            }else{ // 周/月数据
-                foreach($this->date_list as $date) {
-                    $dep_data = $this->db
-                        ->where("date", "D" . $date)
-                        ->where("env_type", $this->env_type)
-                        ->where("mid", $mid)
-                        ->where("param", 7)
-                        ->get("data_envtype_param_copy")
-                        ->result_array();
-                    if(!$dep_data) continue;
-                    var_dump($dep_data);
-                    $wave_arr['min'][] = explode(",", $dep_data[0]['wave'])[0];
-                    $wave_arr['max'][] = explode(",", $dep_data[0]['wave'])[1];
-                    $wave_arr['min2'][] = explode(",", $dep_data[0]['wave'])[2];
-                    $wave_arr['max2'][] = explode(",", $dep_data[0]['wave'])[3];
-                    if($dep_data[0]['wave_status']>0){
-                        foreach(array(0,1) as $type){
-                            $dwa_datas = $this->db
-                                ->select("val,env_name,date")
-                                ->where("depid",$dep_data[0]['id'])
-                                ->where("type",$type)
-                                ->get("data_wave_abnormal")
-                                ->result_array();
-                            if($type == 0) $wave_abnormal = array_merge($wave_abnormal,$dwa_datas);
-                            else $wave_abnormal2 = array_merge($wave_abnormal2,$dwa_datas);
-                        }
-                    }
-                }
-                $wave_min = isset($wave_arr['min'])?min($wave_arr['min']):null;
-                $wave_max = isset($wave_arr['max'])?max($wave_arr['max']):null;
-                $wave_min2 = isset($wave_arr['min2'])?min($wave_arr['min2']):null;
-                $wave_max2 = isset($wave_arr['max2'])?max($wave_arr['max2']):null;
-
-
-            }
-
-            $data[] = array(
-                "mid"=>$mid,
-                "name"=>$this->museum[$mid],
-                "min"=>$v['min'],
-                "max"=>$v["max"],
-                "average"=>$v['average'],
-                "middle"=>$v['middle'],
-                "distance"=>(string)($v["max"]-$v['min']),
-                "standard_percent"=>$v['compliance'],
-                "standard"=>$v['standard'],
-                "count_abnormal"=>$v['count_abnormal'],
-                "value_abnormal"=>$value_abnormal,
-                "wave_min"=>$wave_min,
-                "wave_max"=>$wave_max,
-                "wave_min2"=>$wave_min2,
-                "wave_max2"=>$wave_max2,
-                "wave_abnormal"=>$wave_abnormal,
-                "wave_abnormal2"=>$wave_abnormal2
-            );
         }
 
-        var_dump($data);
-        echo json_encode($data,JSON_UNESCAPED_UNICODE);
+        echo json_encode($ret,JSON_UNESCAPED_UNICODE);
     }
-
-
-
 
 
 

@@ -27,7 +27,7 @@ class situation extends MY_Controller{
     }
 
     //环形图-达标率
-    public function pie_standard_percent(){
+    public function pie_compliance(){
         $env = $this->env_type;
         $param = $this->env_param;
 
@@ -137,7 +137,7 @@ class situation extends MY_Controller{
 
     //地图
     public function map(){
-        $mid = $this->get("mid");//接收对比分析的博物馆id 格式mid=2,3,4
+        $mid = $this->get("mids");//接收对比分析的博物馆id 格式mid=2,3,4
         $env = $this->env_type;
         $param = $this->env_param;
         $params = array();//环境参数编号
@@ -214,16 +214,15 @@ class situation extends MY_Controller{
                 "name"=>$mdata[$v['mid']]['name'],
                 "map_name"=>app_config("map_name"),
                 "grid"=>array((float)$mdata[$v['mid']]['longitude'],(float)$mdata[$v['mid']]['latitude']),
-                "standard_percent"=>$v['standard_percent'],
-                "temperature_scatter"=>$v['scatter_temperature'],
-                "humidity_scatter"=>$v['scatter_humidity'],
+                "compliance"=>round($v['standard_percent'],3)*100 . "%",
+                "temperature_scatter"=>$v['scatter_temperature']*100 . "%",
+                "humidity_scatter"=>$v['scatter_humidity']*100 . "%",
                 "is_wave_abnormal"=>isset($wave_data[$v['mid']])?"是":"无",
                 "is_value_abnormal"=>isset($abnormal_data[$v['mid']])?"是":"无"
             );
         }
 
-        //参与对比的博物馆
-        if($mid){
+        if($mid){//参与对比的博物馆
             $mid = explode(",",$mid);
             foreach($map_data as $v){
                 foreach($mid as $v1){
