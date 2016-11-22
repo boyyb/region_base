@@ -13,7 +13,7 @@ class Area extends MY_Controller{
         parent::__construct();
     }
 
-    public function detail_standard_get($flag = false){ //区域详情达标率
+    private function detail_standard_get(){ //区域详情达标率
         $params = '';
         $suffix = array("total","abnormal");
         $data_flag = $data_standard = array();
@@ -43,14 +43,10 @@ class Area extends MY_Controller{
             $data_standard[$k] = $total?round(($total - $abnormal) / $total,2):0;
         }
 
-        if($flag){
-            return $data_standard;
-        }
-
-        $this->response($data_standard);
+        return $data_standard;
     }
 
-    public function data_scatter_get($flag = false){ //温湿度稳定系数
+    private function data_scatter_get(){
         $data = $this->db->select("c.mid,c.scatter_temperature,c.scatter_humidity")
             ->join("museum m","m.id=c.mid")
             ->where("c.date",$this->date)
@@ -62,16 +58,14 @@ class Area extends MY_Controller{
             $datas["scatter_temperature"][$value["mid"]] = $value["scatter_temperature"];
             $datas["scatter_humidity"][$value["mid"]] = $value["scatter_humidity"];
         }
-        if($flag){
-            return $datas;
-        }
-        $this->response($datas);
+
+        return $datas;
     }
 
 
     public function general_all_get(){ //区域详情-达标与稳定概况
-        $data_standard = $this->detail_standard_get(true);
-        $data_scatter = $this->data_scatter_get(true);
+        $data_standard = $this->detail_standard_get();
+        $data_scatter = $this->data_scatter_get();
         $general_standard = $this->general_one($data_standard);
         $general_scatter_temp = $this->general_one($data_scatter["scatter_temperature"]);
         $general_scatter_humidity = $this->general_one($data_scatter["scatter_humidity"]);
@@ -173,6 +167,119 @@ class Area extends MY_Controller{
         }
 
         $this->response($rs);
+    }
+
+    public function analysis_get(){
+        $mids = $this->get("mids");
+        if(!$mids){
+            $this->response();
+        }
+        $x_standard = array("99.5%(含)~100%","99%(含)~99.5%","95%(含)~99%","<95%");
+        $x_temperature = array("0%~4%(含)","4%~6%(含)","6%~7%(含)",">7.5%");
+        $x_humidity = array("0%~2%(含)","2%~3%(含)","3%~3.5%(含)",">4%");
+        $museum_standard = $museum_temperature = $museum_humidity = $counts_arr = $counts_rs = $legend = array();
+        $mid_arr = explode(",",$mids);
+        $counts = $this->db->select("mid,count_showcase")->get("data_base")->result_array();
+        foreach ($counts as $count){
+            $counts_arr[$count["mid"]] = $count["count_showcase"];
+        }
+        $data_standard = $this->detail_standard_get();
+        $data_scatter = $this->data_scatter_get();
+        $temperature = $data_scatter["scatter_temperature"];
+        $humidity = $data_scatter["scatter_humidity"];
+        foreach ($mid_arr as $mid){
+            if(array_key_exists($mid, $data_standard)){
+                $data = array();//达标率柱状图数据
+                if($data_standard[$mid] >= 0.995 && $data_standard[$mid]<= 1){
+                    $data[] = $data_standard[$mid];
+                }else{
+                    $data[] = 0;
+                }
+                if($data_standard[$mid] >= 0.99 && $data_standard[$mid]< 0.995){
+                    $data[] = $data_standard[$mid];
+                }else{
+                    $data[] = 0;
+                }
+                if($data_standard[$mid] >= 0.95 && $data_standard[$mid]< 0.99){
+                    $data[] = $data_standard[$mid];
+                }else{
+                    $data[] = 0;
+                }
+                if($data_standard[$mid]< 0.95){
+                    $data[] = $data_standard[$mid];
+                }else{
+                    $data[] = 0;
+                }
+                $museum_standard[] = array("name"=>$this->museum[$mid],"data"=>$data);
+            }
+
+            if(array_key_exists($mid,$temperature)){
+                $data = array();//温度离散系数 柱状图数据
+                if($temperature[$mid] > 0 && $temperature[$mid]<= 0.04){
+                    $data[] = $temperature[$mid];
+                }else{
+                    $data[] = 0;
+                }
+                if($temperature[$mid] >0.04 && $temperature[$mid]<= 0.06){
+                    $data[] = $temperature[$mid];
+                }else{
+                    $data[] = 0;
+                }
+                if($temperature[$mid] >0.06 && $temperature[$mid]<= 0.07){
+                    $data[] = $temperature[$mid];
+                }else{
+                    $data[] = 0;
+                }
+                if($temperature[$mid]> 0.075){
+                    $data[] = $temperature[$mid];
+                }else{
+                    $data[] = 0;
+                }
+                $museum_temperature[] = array("name"=>$this->museum[$mid],"data"=>$data);
+            }
+
+            if(array_key_exists($mid,$humidity)){
+                $data = array();//湿度离散系数 柱状图数据
+                if($humidity[$mid] > 0 && $humidity[$mid]<= 0.02){
+                    $data[] = $humidity[$mid];
+                }else{
+                    $data[] = 0;
+                }
+                if($humidity[$mid] >0.02 && $humidity[$mid]<= 0.03){
+                    $data[] = $humidity[$mid];
+                }else{
+                    $data[] = 0;
+                }
+                if($humidity[$mid] >0.03 && $humidity[$mid]<= 0.035){
+                    $data[] = $humidity[$mid];
+                }else{
+                    $data[] = 0;
+                }
+                if($humidity[$mid]> 0.04){
+                    $data[] = $humidity[$mid];
+                }else{
+                    $data[] = 0;
+                }
+                $museum_humidity[] = array("name"=>$this->museum[$mid],"data"=>$data);
+            }
+
+            if(array_key_exists($mid, $counts_arr)){
+                $counts_rs[] = array("name"=>$this->museum[$mid],"count"=>$counts_arr[$mid]);//展柜数量
+            }
+
+            if(array_key_exists($mid, $this->museum)){
+                $legend[] = $this->museum[$mid];
+            }
+        }
+
+        $rs = array(
+            "standard"=>array("xdata"=>$x_standard,"legend"=>$legend,"data"=>$museum_standard),
+            "temperature"=>array("xdata"=>$x_temperature,"legend"=>$legend,"data"=>$museum_temperature),
+            "humidity"=>array("xdata"=>$x_humidity,"legend"=>$legend,"data"=>$museum_humidity),
+            "counts"=>$counts_rs
+        );
+        $this->response($rs);
+
     }
 
 }
