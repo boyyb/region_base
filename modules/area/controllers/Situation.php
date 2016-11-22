@@ -1,7 +1,7 @@
 <?php
 class Situation extends MY_Controller{
 
-    public $date = null; //通用查询日期
+    public $date = null; //通用查询日期字符串
     public $date_start = null; //日波动查询开始日期 20160101
     public $date_end = null; //日波动查询结束日期 20160105
     public $date_list = array(); //日波动查询的日期列表
@@ -19,23 +19,25 @@ class Situation extends MY_Controller{
                 $this->date_start = $this->date_end = date("Ymd",strtotime('-2 day'));
                 break;
             case "week": //本周
-                $this->date = "W".date("YW");
                 if(date("w") == 1){ //周一查上周数据
                     $this->date_start = date("Ymd",mktime(0,0,0,date('m'),date('d')-date('w')-6,date('y')));
                     $this->date_end = date("Ymd",mktime(23,59,59,date('m'),date('d')-date('w'),date('y')));
+                    $this->date = "W".date("YW",strtotime($this->date_end));
                 }else{ //本周数据
-                    $this->date_start = date("Ymd",mktime(0,0,0,date('m'),date('d')-date('w')+1,date('y')));
+                    $this->date_start = date("Ymd",mktime(0,0,0,date("m"),date("d")-(date("w")==0?7:date("w"))+1,date("Y")));
                     $this->date_end = date("Ymd",strtotime('-1 day'));
+                    $this->date = "W".date("YW");
                 }
                 break;
             case "month": //本月
-                $this->date = "M".date("Ym");
                 if(date("d") == "01"){ //1号查上月数据
                     $this->date_start = date("Ymd",mktime(0,0,0,date('m')-1,1,date('y')));
                     $this->date_end = date("Ymd",mktime(23,59,59,date("m"),0,date("y")));
+                    $this->date = "M".date("Ym",strtotime($this->date_end));
                 }else{
                     $this->date_start = date("Ymd",mktime(0,0,0,date('m'),1,date('y')));
                     $this->date_end = date("Ymd",strtotime('-1 day'));
+                    $this->date = "M".date("Ym");
                 }
                 break;
             default:
@@ -44,7 +46,11 @@ class Situation extends MY_Controller{
         }
 
         $this->date_list = $this->_date_list($this->date_start,$this->date_end);
+        /*var_dump($this->date_start);
+        var_dump($this->date_end);
         var_dump($this->date_list);
+        var_dump($this->date);
+        echo "<hr/>";*/
     }
 
     //生成日期列表
@@ -101,12 +107,11 @@ class Situation extends MY_Controller{
                 "value"=>0,
                 "name"=>$v['name']);
         }
-        var_dump($sp_data);
         return $sp_data;
     }
 
     //环形图-稳定性
-    public function pie_stability(){
+    protected function pie_stability(){
         $env = $this->env_type;
         $ts = array( //温度
             1=>array("name"=>"0~4%(含)","min"=>0,"max"=>0.04),
@@ -138,7 +143,7 @@ class Situation extends MY_Controller{
         //温度统计
         foreach($ts as $k=>$v){
             foreach($data['temperature_scatter'] as $v1){
-                if($v1<=$v['max'] && $v1>$v['min']) $data1[$k][] = $v1;
+                if($v1<=$v['max'] && $v1>$v['min']) $data1[$k][] = $v1; //null不计入统计
             }
             if(isset($data1[$k])) $ts_data[] = array(
                 "value"=>count($data1[$k]),
@@ -162,8 +167,17 @@ class Situation extends MY_Controller{
         $ret['temperature_scatter'] = $ts_data;
         $ret['humidity_scatter'] = $hs_data;
 
-        var_dump($ret);
         return $ret;
+    }
+
+
+    //饼图数据
+    public function pie(){
+        $data = array();
+        $data['compliance'] = $this->pie_compliance();
+        $data = array_merge($data,$this->pie_stability());
+
+        $this->response($data);
     }
 
     //地图
@@ -210,17 +224,16 @@ class Situation extends MY_Controller{
 
         //统计各博物馆日波动(温度/湿度)超标情况 不剔除异常值
         $wave_data = array();
-        var_dump($wave_params);
         if(in_array("temperature",$this->env_param) || in_array("humidity",$this->env_param)){
             $dep_datas = $this->db
                 ->select("mid,date,wave_status")
-                ->where_in("date",$this->date_list)
+                ->where_in("date",$this->date_list) //按天统计
                 ->where("env_type",$env)
                 ->where_in("param",$wave_params)
                 ->where("wave_status>",3)
                 ->group_by("mid")
                 ->get("data_envtype_param")
-                ->result_array(); var_dump($dep_datas);
+                ->result_array();
             if($dep_datas){
                 foreach($dep_datas as $v){
                     $wave_data[$v['mid']] = $v['wave_status']; //波动超标数据
@@ -269,9 +282,9 @@ class Situation extends MY_Controller{
                     }
                 }
             }
-            //$this->response($c_data);
+            $this->response($c_data);
         }else{
-            //$this->response($map_data);
+            $this->response($map_data);
         }
     }
 
