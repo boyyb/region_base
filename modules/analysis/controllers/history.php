@@ -1,5 +1,5 @@
 <?php
-class history extends MY_Controller{
+class History extends MY_Controller{
 
     public $mids = array(); //存放参与对比博物馆的id
     public $date_start = null; //查询开始日期

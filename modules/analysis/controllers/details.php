@@ -1,5 +1,5 @@
 <?php
-class details extends MY_Controller{
+class Details extends MY_Controller{
 
     public $mids = array(); //参与对比博物馆id
     public $date = null; //对比日期

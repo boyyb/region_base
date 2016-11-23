@@ -1,26 +1,59 @@
 <?php
-class situation extends MY_Controller{
+class Situation extends MY_Controller{
 
-    public $date = null;
+    public $date = null; //通用查询日期
+    public $date_start = null; //日波动查询开始日期 20160101
+    public $date_end = null; //日波动查询结束日期 20160105
+    public $date_list = array(); //日波动查询的日期列表
 
     function __construct(){
         parent::__construct();
         $date_str = $this->get("definite_time");
         switch ($date_str){
             case "yesterday": //昨天
-                $this->date = "D".date("Ymd",time() - 24*60*60);
+                $this->date = "D".date("Ymd",strtotime('-1 day'));
+                $this->date_start = $this->date_end = date("Ymd",strtotime('-1 day'));
                 break;
             case "before_yes": //前天
-                $this->date = "D".date("Ymd",time() - 24*60*60*2);
+                $this->date = "D".date("Ymd",strtotime('-2 day'));
+                $this->date_start = $this->date_end = date("Ymd",strtotime('-2 day'));
                 break;
             case "week": //本周
                 $this->date = "W".date("YW");
+                if(date("w") == 1){ //周一查上周数据
+                    $this->date_start = date("Ymd",mktime(0,0,0,date('m'),date('d')-date('w')-6,date('y')));
+                    $this->date_end = date("Ymd",mktime(23,59,59,date('m'),date('d')-date('w'),date('y')));
+                }else{ //本周数据
+                    $this->date_start = date("Ymd",mktime(0,0,0,date('m'),date('d')-date('w')+1,date('y')));
+                    $this->date_end = date("Ymd",strtotime('-1 day'));
+                }
                 break;
             case "month": //本月
                 $this->date = "M".date("Ym");
+                if(date("d") == "01"){ //1号查上月数据
+                    $this->date_start = date("Ymd",mktime(0,0,0,date('m')-1,1,date('y')));
+                    $this->date_end = date("Ymd",mktime(23,59,59,date("m"),0,date("y")));
+                }else{
+                    $this->date_start = date("Ymd",mktime(0,0,0,date('m'),1,date('y')));
+                    $this->date_end = date("Ymd",strtotime('-1 day'));
+                }
                 break;
-            default: $this->date = "D".$date_str; //某一天
+            default:
+                $this->date = "D".$date_str; //某一天
+                $this->date_start = $this->date_end = $date_str;
         }
+
+        $this->date_list = $this->_date_list($this->date_start,$this->date_end);
+        var_dump($this->date_list);
+    }
+
+    //生成日期列表
+    protected function _date_list($s,$e){
+        $date = array();
+        for ($i = strtotime($s); $i <= strtotime($e); $i += 86400) {
+            $date[] = "D".date("Ymd", $i);
+        }
+        return $date;
     }
 
     //环形图-达标率
@@ -68,8 +101,8 @@ class situation extends MY_Controller{
                 "value"=>0,
                 "name"=>$v['name']);
         }
-
-        $this->response($sp_data);
+        var_dump($sp_data);
+        return $sp_data;
     }
 
     //环形图-稳定性
@@ -129,7 +162,8 @@ class situation extends MY_Controller{
         $ret['temperature_scatter'] = $ts_data;
         $ret['humidity_scatter'] = $hs_data;
 
-        $this->response($ret);
+        var_dump($ret);
+        return $ret;
     }
 
     //地图
@@ -172,11 +206,12 @@ class situation extends MY_Controller{
             ->get("data_complex")
             ->result_array();
         if(!$dc_datas) die(json_encode(array()));
+
         //统计各博物馆日波动超标情况 不剔除异常值
         $wave_data = array();
         $dep_datas = $this->db
             ->select("mid,date,wave_status")
-            ->where("date",$this->date)
+            ->where_in("date",$this->date_list)
             ->where("env_type",$env)
             ->where_in("param",$params)
             ->where("wave_status>",3)
