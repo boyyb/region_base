@@ -139,8 +139,10 @@ class situation extends MY_Controller{
         $param = $this->env_param;
         $params = array();//环境参数编号
         foreach($param as $v){
-            if($v=="humidity") array_push($params,1,2,3,10); //加混合材质 10
-            elseif($v=="light") array_push($params,4,5,6,11); //加混合材质 11
+            if($v=="humidity" && $this->env_type != "展厅") array_push($params,1,2,3,12);
+            elseif($v=="humidity" && $this->env_type == "展厅") array_push($params,10);
+            elseif($v=="light" && $this->env_type != "展厅") array_push($params,4,5,6,13);
+            elseif($v=="light" && $this->env_type == "展厅") array_push($params,11);
             elseif($v=="temperature") array_push($params,7);
             elseif($v=="uv") array_push($params,8);
             elseif($v=="voc") array_push($params,9);

@@ -76,13 +76,13 @@ class details extends MY_Controller{
             }
             //日波动统计(天数据直接取值，周/月数据按天分别统计)
             $wave_abnormal = $wave_abnormal2 = array();
-            $wave_min = $wave_max = $wave_min2 = $wave_max2 = null;
-            if(in_array($param_id,array(1,2,3,7))){ //仅计算温湿度
-                if($this->date_start == $this->date_end){ //天数据
-                    $wave_min = explode(",",$v['wave'])[0];
-                    $wave_max = explode(",",$v['wave'])[1];
-                    $wave_min2 = explode(",",$v['wave'])[2];
-                    $wave_max2 = explode(",",$v['wave'])[3];
+            $wave_arr = array();
+            if(in_array($param_id,array(1,2,3,7,10,12))){ //仅计算温湿度
+                if($this->date_start == $this->date_end){ //天数据(含本周/本月第二天)
+                    $wave_arr['min'][] = explode(",",$v['wave'])[0];
+                    $wave_arr['max'][] = explode(",",$v['wave'])[1];
+                    $wave_arr['min2'][] = explode(",",$v['wave'])[2];
+                    $wave_arr['max2'][] = explode(",",$v['wave'])[3];
                     if($v['wave_status']>0){//存在波动超标
                         foreach(array(0,1) as $type){
                             $dwa_datas = $this->db
@@ -95,13 +95,13 @@ class details extends MY_Controller{
                             else $wave_abnormal2 = $dwa_datas; //剔除异常值的波动超标数据
                         }
                     }
-                }elseif($this->date_end >= $this->date_start){ // 周/月数据
+                }elseif($this->date_end > $this->date_start){ // 周/月数据(除本周/本月第二天)
                     foreach($this->date_list as $date) {
                         $dep_data = $this->db
                             ->where("date", "D" . $date)
                             ->where("env_type", $this->env_type)
                             ->where("mid", $mid)
-                            ->where("param", 7)
+                            ->where("param", $param_id)
                             ->get("data_envtype_param")
                             ->result_array();
                         if(!$dep_data) continue;
@@ -154,7 +154,7 @@ class details extends MY_Controller{
         return $data;
     }
 
-    //数据调用接口函数
+    //数据调用
     public function data(){
         foreach($this->env_param as $param){
             if($param == "temperature"){
@@ -163,7 +163,7 @@ class details extends MY_Controller{
                 $ret['uv'] = $this->_data(8);
             }elseif($param == "voc"){
                 $ret['voc'] = $this->_data(9);
-            }elseif($param == "humidity"){
+            }elseif($param == "humidity" && $this->env_type != "展厅"){ // 展柜/库房要分材质
                 $ret['humidity'][] = array(
                     "texture"=>"石质、陶器、瓷器",
                     "data"=>$this->_data(1)
@@ -178,9 +178,13 @@ class details extends MY_Controller{
                 );
                 $ret['humidity'][] = array(
                     "texture"=>"混合材质",
-                    "data"=>$this->_data(10)
+                    "data"=>$this->_data(12)
                 );
-            }elseif($param == "light"){
+            }elseif($param == "humidity" && $this->env_type == "展厅"){ //展厅不分材质
+                $ret['humidity'] = $this->_data(10);
+            }elseif($param == "light" && $this->env_type == "展厅"){ //展厅不分材质
+                $ret['light'] = $this->_data(11);
+            }elseif($param == "light" && $this->env_type != "展厅"){ //展柜库房分材质
                 $ret['light'][] = array(
                     "texture"=>"石质、陶器、瓷器、铁质、青铜",
                     "data"=>$this->_data(4)
@@ -195,11 +199,11 @@ class details extends MY_Controller{
                 );
                 $ret['light'][] = array(
                     "texture"=>"混合材质",
-                    "data"=>$this->_data(11)
+                    "data"=>$this->_data(13)
                 );
             }
         }
-
+        var_dump($ret);
         $this->response($ret);
     }
 
