@@ -69,7 +69,7 @@ class Area extends MY_Controller{
         $general_standard = $this->general_one($data_standard);
         $general_scatter_temp = $this->general_one($data_scatter["scatter_temperature"]);
         $general_scatter_humidity = $this->general_one($data_scatter["scatter_humidity"]);
-        $this->response(array("standard"=>$general_standard,"scatter_temperature"=>$general_scatter_temp,"scatter_humidity"=>$general_scatter_humidity));
+        $this->response(array("standard_scatter"=>$general_standard,"temperature_scatter"=>$general_scatter_temp,"humidity_scatter"=>$general_scatter_humidity));
     }
 
     protected function general_one($data){
@@ -271,14 +271,51 @@ class Area extends MY_Controller{
                 $legend[] = $this->museum[$mid];
             }
         }
-
+        $indicator = array(
+            array("name"=>"全参数平均达标率","max"=>1),
+            array("name"=>"温度","max"=>1),
+            array("name"=>"湿度","max"=>1),
+            array("name"=>"光照","max"=>1),
+            array("name"=>"紫外","max"=>1),
+            array("name"=>"有机挥发物","max"=>1)
+        );
         $rs = array(
             "standard"=>array("xdata"=>$x_standard,"legend"=>$legend,"data"=>$museum_standard),
             "temperature"=>array("xdata"=>$x_temperature,"legend"=>$legend,"data"=>$museum_temperature),
             "humidity"=>array("xdata"=>$x_humidity,"legend"=>$legend,"data"=>$museum_humidity),
-            "counts"=>$counts_rs
+            "counts"=>$counts_rs,
+            "all_standard"=>array("legend"=>$legend,"indicator"=>$indicator,"data"=>$this->depart_standard($mid_arr))
         );
         $this->response($rs);
+
+    }
+
+    private function depart_standard($mid_arr = array()){
+        $data = array();
+        $data_complex = $this->db->select("c.*")
+            ->join("data_complex c","c.mid=m.id")
+            ->where("c.env_type",$this->env_type)
+            ->where("c.date",$this->date)
+            ->where_in("c.mid",$mid_arr)
+            ->get("museum m")
+            ->result_array();
+        foreach ($mid_arr as $mid){
+            foreach ($data_complex as $item) {
+                if($item["mid"] == $mid){
+                    $standard = array();
+                    $standard[] = $item["temperature_total"]?round(($item["temperature_total"] - $item["temperature_abnormal"])/$item["temperature_total"]):0;
+                    $standard[] = $item["humidity_total"]?round(($item["humidity_total"] - $item["humidity_abnormal"])/$item["humidity_total"]):0;
+                    $standard[] = $item["light_total"]?round(($item["light_total"] - $item["light_abnormal"])/$item["light_total"]):0;
+                    $standard[] = $item["uv_total"]?round(($item["uv_total"] - $item["uv_abnormal"])/$item["uv_total"]):0;
+                    $standard[] = $item["voc_total"]?round(($item["voc_total"] - $item["voc_abnormal"])/$item["voc_total"]):0;
+                    $average = round(array_sum($standard)/sizeof($standard),2);
+                    array_unshift($standard,$average);
+                    $data[] = array("name"=>$this->museum[$mid],"value"=>$standard);
+                    break;
+                }
+            }
+        }
+        return $data;
 
     }
 
