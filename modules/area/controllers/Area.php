@@ -80,8 +80,9 @@ class Area extends MY_Controller{
         $rs["all"] = count($data);
         $rs["standard"] = $calculate["standard"];
         $rs["average"] = $calculate["average"];
+        $rs["max"] = max($data)*1.1;
         foreach ($data as $k => $value){
-            $rs["museum"][] = array("name"=>$this->museum[$k],"data"=>$value,"distance"=>$value - $calculate["average"]);
+            $rs["museum"][] = array("mid"=>$k,"name"=>$this->museum[$k],"data"=>$value,"distance"=>$value - $calculate["average"]);
             $z = $calculate["standard"]?($value - $calculate["average"]) / $calculate["standard"]:0;
             if($z < -2){
                 $rs["attention"][] = $this->museum[$k];
@@ -105,7 +106,7 @@ class Area extends MY_Controller{
         }else{
             $texture = $this->texture["common"]+$this->texture["zgkf"]+$this->texture["hh"];
         }
-
+        $arr_minmax = array();
         $all =  $this->db->select("p.*")
             ->join("data_envtype_param p","p.mid=m.id")
             ->where("p.date",$this->date)
@@ -114,6 +115,8 @@ class Area extends MY_Controller{
             ->result_array();
         $data_tables = array();
         foreach ($all as $item) {
+            $arr_minmax[$item["param"]][] = $item["max"];
+            $arr_minmax[$item["param"]][] = $item["min"];
             $arr = array(
                 "mid"=>$item["mid"],
                 "museum"=>$this->museum[$item["mid"]],
@@ -147,6 +150,13 @@ class Area extends MY_Controller{
 
             $texture_data[$item["param"]]["list"][] = $arr;
 
+        }
+
+        foreach ($texture_data as $param=>$value){
+            if(array_key_exists($param, $arr_minmax)){
+                $texture_data[$param]["left"] = min($arr_minmax[$param])*0.9;
+                $texture_data[$param]["right"] = max($arr_minmax[$param])*1.1;
+            }
         }
 
         //print_r($texture_data);exit;
