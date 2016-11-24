@@ -197,13 +197,7 @@ class Situation extends MY_Controller{
             elseif($v=="voc") array_push($params,9);
         }
 
-        //博物馆基础信息(名称、坐标)
-        $mdatas = $this->db->order_by("id asc")->get("museum")->result_array();
-        foreach($mdatas as $v){
-            $mdata[$v['id']] = $v;
-        }
-
-        //统计各博物馆下离散、达标率
+        //统计接收到的各博物馆下离散、达标率
         $totalstr = '';
         $abnormalstr = '';
         foreach ($param as $v) {
@@ -214,13 +208,16 @@ class Situation extends MY_Controller{
         $abnormalstr = "(".substr($abnormalstr, 1).")";
         $sp = "(".$totalstr."-".$abnormalstr.")/$totalstr "." as standard_percent";
         $dc_datas = $this->db
-            ->select("mid,scatter_temperature,scatter_humidity,".$sp)
+            ->select("distinct(mid),scatter_temperature,scatter_humidity,".$sp)
             ->where("date",$this->date)
             ->where("env_type",$env)
             ->order_by("mid")
             ->get("data_complex")
             ->result_array();
         if(!$dc_datas) die(json_encode(array()));
+        foreach($dc_datas as $v){
+            $datas[$v['mid']] = $v;
+        }
 
         //统计各博物馆日波动(温度/湿度)超标情况 不剔除异常值
         $wave_data = array();
@@ -259,26 +256,28 @@ class Situation extends MY_Controller{
         }
 
         //所有博物馆数据综合
-        foreach($dc_datas as $v){
-            $map_data[] = array(
-                "mid"=>$v['mid'],
-                "name"=>$mdata[$v['mid']]['name'],
-                "map_name"=>app_config("map_name"),
-                "grid"=>array((float)$mdata[$v['mid']]['longitude'],(float)$mdata[$v['mid']]['latitude']),
-                "compliance"=>$v['standard_percent'] !== null?round($v['standard_percent'],3)*100 . "%":null,
-                "temperature_scatter"=>$v['scatter_temperature']?$v['scatter_temperature']*100 . "%":null,
-                "humidity_scatter"=>$v['scatter_humidity']?$v['scatter_humidity']*100 . "%":null,
-                "is_wave_abnormal"=>isset($wave_data[$v['mid']])?"是":"无",
-                "is_value_abnormal"=>isset($abnormal_data[$v['mid']])?"是":"无"
+        $mdatas = $this->db->order_by("id asc")->get("museum")->result_array();//所有博物馆基础信息(名称、坐标)
+        $map_data['map_name'] = app_config("map_name");
+        foreach($mdatas as $val){
+            $map_data['data'][] = array(
+                "mid"=>$val['id'],
+                "name"=>$val['name'],
+                "grid"=>array((float)$val['longitude'],(float)$val['latitude']),
+                "compliance"=>(isset($datas[$val['id']]) && $datas[$val['id']]['standard_percent'] !== null)?round($datas[$val['id']]['standard_percent'],3)*100 . "%":null,//0 !== null
+                "temperature_scatter"=>(isset($datas[$val['id']]) && $datas[$val['id']]['scatter_temperature'])?$datas[$val['id']]['scatter_temperature']*100 . "%":null,
+                "humidity_scatter"=>(isset($datas[$val['id']]) && $datas[$val['id']]['scatter_humidity'])?$datas[$val['id']]['scatter_humidity']*100 . "%":null,
+                "is_wave_abnormal"=>isset($wave_data[$val['id']])?"是":"无",
+                "is_value_abnormal"=>isset($abnormal_data[$val['id']])?"是":"无"
             );
         }
 
         if($mid){//参与对比的博物馆
+            $c_data['map_name'] = $map_data['map_name'];
             $mid = explode(",",$mid);
-            foreach($map_data as $v){
+            foreach($map_data['data'] as $v){
                 foreach($mid as $v1){
                     if($v['mid'] == $v1){
-                       $c_data[] = $v;
+                       $c_data['data'][] = $v;
                     }
                 }
             }
