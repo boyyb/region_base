@@ -290,11 +290,11 @@ class Area extends MY_Controller{
             array("name"=>"有机挥发物","max"=>1)
         );
         $rs = array(
-            "standard"=>array("xdata"=>$x_standard,"legend"=>$legend,"data"=>$museum_standard),
+            "compliance"=>array("xdata"=>$x_standard,"legend"=>$legend,"data"=>$museum_standard),
             "temperature"=>array("xdata"=>$x_temperature,"legend"=>$legend,"data"=>$museum_temperature),
             "humidity"=>array("xdata"=>$x_humidity,"legend"=>$legend,"data"=>$museum_humidity),
             "counts"=>$counts_rs,
-            "all_standard"=>array("legend"=>$legend,"indicator"=>$indicator,"data"=>$this->depart_standard($mid_arr))
+            "all_compliance"=>array("legend"=>$legend,"indicator"=>$indicator,"data"=>$this->depart_standard($mid_arr))
         );
         $this->response($rs);
 
