@@ -82,6 +82,7 @@ class Area extends MY_Controller{
         $rs["average"] = $calculate["average"];
         $rs["max"] = max($data)*1.1;
         foreach ($data as $k => $value){
+            $value = $value?$value:0;
             $rs["museum"][] = array("mid"=>$k,"name"=>$this->museum[$k],"data"=>$value,"distance"=>$value - $calculate["average"]);
             $z = $calculate["standard"]?($value - $calculate["average"]) / $calculate["standard"]:0;
             if($z < -2){
