@@ -25,6 +25,7 @@ class MY_Controller extends REST_Controller
     protected $env_param = array();
     protected $museum = array();
     protected $texture = array();
+    protected $unit = array();
     protected $env_type_arr = array(
         "cabinet"=>"展柜",
         "hall"=>"展厅",
@@ -37,6 +38,7 @@ class MY_Controller extends REST_Controller
         $this->load->helper(array("calculate"));
         $this->load->config("texture");
         $this->texture = config_item("texture");
+        $this->unit = config_item("unit");
         $this->definite_time = $this->get("definite_time");
         if(!$this->definite_time){
             $this->definite_time = "yesterday";

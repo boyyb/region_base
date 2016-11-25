@@ -26,20 +26,19 @@ class Login extends MY_Controller{
 
         
         $this->load->model('user_model');
-        // 用户行为记录
-        $result['behavior'] = $this->user_model->get_behavior($row['id']);
         //记录登录次数
         $this->user_model->login_count($row['id']);
-        // 权限
-        $row['permissions'] = $this->user_model->get_permissions($row['id'], $row['role_ids']);
-        $result['permissions'] = $row['permissions'];
-
-        // 同步
-        $result['results'] = $this->_sync($row);
 
         // 登录成功
         $result['is_login'] = true;
         $result ['msg'] = $row['username'] . '登录成功';
+        // 权限
+        $row['permissions'] = $this->user_model->get_permissions($row['id'], $row['role_ids']);
+        // 同步
+        $result['results'] = $this->_sync($row);
+        $result['permissions'] = $row['permissions'];
+        // 用户行为记录
+        // $result['behavior'] = $this->user_model->get_behavior($row['id']);
 
         $this->response($result);
     }
