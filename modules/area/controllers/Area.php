@@ -282,7 +282,7 @@ class Area extends MY_Controller{
                 $legend[] = $this->museum[$mid];
             }
         }
-        $indicator = array(
+        $indicator_compliance = array(
             array("name"=>"全参数平均达标率","max"=>1),
             array("name"=>"温度","max"=>1),
             array("name"=>"湿度","max"=>1),
@@ -290,18 +290,28 @@ class Area extends MY_Controller{
             array("name"=>"紫外","max"=>1),
             array("name"=>"有机挥发物","max"=>1)
         );
+        $indicator_scatter = array(
+            array("name"=>"全参数平均离散系数","max"=>0.15),
+            array("name"=>"温度","max"=>0.15),
+            array("name"=>"湿度","max"=>0.15),
+            array("name"=>"光照","max"=>0.15),
+            array("name"=>"紫外","max"=>0.15),
+            array("name"=>"有机挥发物","max"=>0.15)
+        );
+        $datas = $this->depart_table($mid_arr);
         $rs = array(
             "compliance"=>array("xdata"=>$x_standard,"legend"=>$legend,"data"=>$museum_standard),
             "temperature"=>array("xdata"=>$x_temperature,"legend"=>$legend,"data"=>$museum_temperature),
             "humidity"=>array("xdata"=>$x_humidity,"legend"=>$legend,"data"=>$museum_humidity),
             "counts"=>$counts_rs,
-            "all_compliance"=>array("legend"=>$legend,"indicator"=>$indicator,"data"=>$this->depart_standard($mid_arr))
+            "all_compliance"=>array("legend"=>$legend,"indicator"=>$indicator_compliance,"data"=>$datas["compliance"]),
+            "all_scatter"=>array("legend"=>$legend,"indicator"=>$indicator_scatter,"data"=>$datas["scatter"])
         );
         $this->response($rs);
 
     }
 
-    private function depart_standard($mid_arr = array()){
+    private function depart_table($mid_arr = array()){
         $data = array();
         $data_complex = $this->db->select("c.*")
             ->join("data_complex c","c.mid=m.id")
@@ -313,15 +323,23 @@ class Area extends MY_Controller{
         foreach ($mid_arr as $mid){
             foreach ($data_complex as $item) {
                 if($item["mid"] == $mid){
-                    $standard = array();
+                    $standard = $scatter = array();
                     $standard[] = $item["temperature_total"]?round(($item["temperature_total"] - $item["temperature_abnormal"])/$item["temperature_total"]):0;
                     $standard[] = $item["humidity_total"]?round(($item["humidity_total"] - $item["humidity_abnormal"])/$item["humidity_total"]):0;
                     $standard[] = $item["light_total"]?round(($item["light_total"] - $item["light_abnormal"])/$item["light_total"]):0;
                     $standard[] = $item["uv_total"]?round(($item["uv_total"] - $item["uv_abnormal"])/$item["uv_total"]):0;
                     $standard[] = $item["voc_total"]?round(($item["voc_total"] - $item["voc_abnormal"])/$item["voc_total"]):0;
-                    $average = round(array_sum($standard)/sizeof($standard),2);
-                    array_unshift($standard,$average);
-                    $data[] = array("name"=>$this->museum[$mid],"value"=>$standard);
+                    $scatter[] = $item["scatter_temperature"]?$item["scatter_temperature"]:0;
+                    $scatter[] = $item["scatter_humidity"]?$item["scatter_humidity"]:0;
+                    $scatter[] = $item["scatter_light"]?$item["scatter_light"]:0;
+                    $scatter[] = $item["scatter_uv"]?$item["scatter_uv"]:0;
+                    $scatter[] = $item["scatter_voc"]?$item["scatter_voc"]:0;
+                    $average_standard = round(array_sum($standard)/sizeof($standard),2);
+                    $average_scatter = round(array_sum($scatter)/sizeof($scatter),2);
+                    array_unshift($standard,$average_standard);
+                    array_unshift($scatter,$average_scatter);
+                    $data["compliance"][] = array("name"=>$this->museum[$mid],"value"=>$standard);
+                    $data["scatter"][] = array("name"=>$this->museum[$mid],"value"=>$scatter);
                     break;
                 }
             }
