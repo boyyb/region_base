@@ -5,45 +5,60 @@ class History extends MY_Controller{
     public $date_start = null; //查询开始日期
     public $date_end = null; //查询结束日期
     public $date_list = array(); //日期列表
+    public $week = array();
 
     public function __construct(){
         parent::__construct();
         $this->mids = explode(",",$this->get("mids")); //mids=2,3,4
-        $date = $this->get("definite_time"); //接收日期字符串
-        switch ($date){
+        $date_str = $this->get("definite_time");
+        switch ($date_str){
             case "yesterday": //昨天
-                $this->date_start = date("Ymd",strtotime('-1 day'));
-                $this->date_end = $this->date_start;
+                $this->date = "D".date("Ymd",strtotime('-1 day'));
+                $this->date_start = $this->date_end = date("Ymd",strtotime('-1 day'));
                 break;
             case "before_yes": //前天
-                $this->date_start = date("Ymd",strtotime('-2 day'));
-                $this->date_end = $this->date_start;
+                $this->date = "D".date("Ymd",strtotime('-2 day'));
+                $this->date_start = $this->date_end = date("Ymd",strtotime('-2 day'));
                 break;
             case "week": //本周
-                $this->date_start = date("Ymd",mktime(0,0,0,date('m'),date('d')-date('w')+1,date('y')));
-                $this->date_end = date("Ymd",strtotime('-1 day'));
+                if(date("w") == 1){ //周一查上周数据
+                    $this->date_start = date("Ymd",mktime(0,0,0,date('m'),date('d')-date('w')-6,date('y')));
+                    $this->date_end = date("Ymd",mktime(23,59,59,date('m'),date('d')-date('w'),date('y')));
+                }else{ //本周数据
+                    $this->date_start = date("Ymd",mktime(0,0,0,date("m"),date("d")-(date("w")==0?7:date("w"))+1,date("Y")));
+                    $this->date_end = date("Ymd",strtotime('-1 day'));
+                }
                 break;
             case "month": //本月
-                $this->date_start = date("Ymd",mktime(0,0,0,date('m'),1,date('y')));
-                $this->date_end = date("Ymd",strtotime('-1 day'));
+                if(date("d") == "01"){ //1号查上月数据
+                    $this->date_start = date("Ymd",mktime(0,0,0,date('m')-1,1,date('y')));
+                    $this->date_end = date("Ymd",mktime(23,59,59,date("m"),0,date("y")));
+                }else{
+                    $this->date_start = date("Ymd",mktime(0,0,0,date('m'),1,date('y')));
+                    $this->date_end = date("Ymd",strtotime('-1 day'));
+                }
                 break;
-            default: $this->date_end = $this->date_start = $date; //指定某一天
+            default:
+                $this->date_start = $this->date_end = $date_str;
         }
+
         $this->date_list = $this->_date_list($this->date_start,$this->date_end);
-        if($this->date_end < $this->date_start) $this->response(array());// 跨周/月
+     
     }
 
     //生成日期列表
     protected function _date_list($s,$e){
+        $weekarray=array("周日","周一","周二","周三","周四","周五","周六");
         $date = array();
         for ($i = strtotime($s); $i <= strtotime($e); $i += 86400) {
             $date[] = date("Ymd", $i);
+            $this->week[] = $weekarray[date("w",$i)];
         }
         return $date;
     }
 
     //历史达标率-多博物馆对比
-    public function compliance(){
+    protected function compliance(){
         //构建达标率计算字符串
         $totalstr = '';
         $abnormalstr = '';
@@ -78,12 +93,11 @@ class History extends MY_Controller{
                 "data"=>array_values($v)
             );
         }
-
-        $this->response($ret);
+        return $ret;
     }
 
     //稳定性（温度/湿度）- 多博物馆对比
-    public function stability(){
+    protected function stability(){
         //各个博物馆分日期显示温度湿度离散数据
         foreach($this->mids as $mid) {
             foreach($this->date_list as $date){
@@ -120,8 +134,17 @@ class History extends MY_Controller{
             );
         }
 
-        $this->response($ret);
+        return $ret;
     }
 
+    public function line_chart(){
+        $data = array();
+        $data['date'] = $this->week;
+        $data['compliance'] = $this->compliance();
+        $data = array_merge($data,$this->stability());
+
+        echo json_encode($data,JSON_UNESCAPED_UNICODE);
+
+    }
 
 }
