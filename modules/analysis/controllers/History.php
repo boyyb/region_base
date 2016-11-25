@@ -79,7 +79,7 @@ class History extends MY_Controller{
                     ->where("mid", $mid)
                     ->get("data_complex")
                     ->result_array();
-                if($dc_datas && $dc_datas[0]['total'])
+                if($dc_datas && $dc_datas[0]['total']) //include sp=0
                     $datas[$mid][$date] = round($dc_datas[0]['standard_percent'],3);
                 else $datas[$mid][$date] = null;
             }
@@ -107,7 +107,7 @@ class History extends MY_Controller{
                     ->where("mid", $mid)
                     ->get("data_complex")
                     ->result_array();
-                if($dc_datas && $dc_datas[0]['scatter_temperature'])
+                if($dc_datas && $dc_datas[0]['scatter_temperature']) //排除null值
                     $tc_datas[$mid][$date] = (float)$dc_datas[0]['scatter_temperature'];
                 else $tc_datas[$mid][$date] = null;
 
@@ -139,12 +139,11 @@ class History extends MY_Controller{
     public function line_chart(){
         $data = array();
         if($this->get("definite_time") == "week") $data['date'] = $this->week;
-        elseif($this->get("definite_time") == "month") $data['date'] = $this->date_list;
+        else $data['date'] = $this->date_list;
         $data['compliance'] = $this->compliance();
         $data = array_merge($data,$this->stability());
-        var_dump($data);
-        //echo json_encode($data,JSON_UNESCAPED_UNICODE);
 
+        $this->response($data);
     }
 
 }
