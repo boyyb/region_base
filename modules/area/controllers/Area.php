@@ -66,13 +66,13 @@ class Area extends MY_Controller{
     public function general_all_get(){ //区域详情-达标与稳定概况
         $data_standard = $this->detail_standard_get();
         $data_scatter = $this->data_scatter_get();
-        $general_standard = $this->general_one($data_standard);
-        $general_scatter_temp = $this->general_one($data_scatter["scatter_temperature"]);
-        $general_scatter_humidity = $this->general_one($data_scatter["scatter_humidity"]);
+        $general_standard = $this->general_one($data_standard,"standard");
+        $general_scatter_temp = $this->general_one($data_scatter["scatter_temperature"],"scatter");
+        $general_scatter_humidity = $this->general_one($data_scatter["scatter_humidity"],"scatter");
         $this->response(array("standard_scatter"=>$general_standard,"temperature_scatter"=>$general_scatter_temp,"humidity_scatter"=>$general_scatter_humidity));
     }
 
-    protected function general_one($data){
+    protected function general_one($data,$type){
         $calculate = calculate($data);
         $rs = array();
         $rs["less"] = $rs["equal"] = $rs["more"] = 0;
@@ -85,7 +85,9 @@ class Area extends MY_Controller{
             $value = $value?$value:0;
             $rs["museum"][] = array("mid"=>$k,"name"=>$this->museum[$k],"data"=>$value,"distance"=>$value - $calculate["average"]);
             $z = $calculate["standard"]?($value - $calculate["average"]) / $calculate["standard"]:0;
-            if($z < -2){
+            if($type == "standard" && $z < -2){
+                $rs["attention"][] = $this->museum[$k];
+            }elseif ($type == "scatter" && $z > 2){
                 $rs["attention"][] = $this->museum[$k];
             }
             if($value < $calculate["average"]){
