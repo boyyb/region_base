@@ -28,3 +28,11 @@ $config["texture"] = array(
         11 => array("light"=>array())
     )
 );
+
+$config["unit"] = array(
+    "temperature"=>"°C",
+    "humidity"=>"RH/%",
+    "light"=>"Lx",
+    "uv"=>"μw/cm²",
+    "voc"=>"ppb"
+);
