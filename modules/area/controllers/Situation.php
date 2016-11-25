@@ -1,10 +1,10 @@
 <?php
 class Situation extends MY_Controller{
 
-    public $date = null; //通用查询日期字符串
-    public $date_start = null; //日波动查询开始日期 20160101
-    public $date_end = null; //日波动查询结束日期 20160105
-    public $date_list = array(); //日波动查询的日期列表
+    protected $date = null; //通用查询日期字符串
+    protected $date_start = null; //日波动查询开始日期 20160101
+    protected $date_end = null; //日波动查询结束日期 20160105
+    protected $date_list = array(); //日波动查询的日期列表
 
     function __construct(){
         parent::__construct();

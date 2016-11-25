@@ -1,11 +1,11 @@
 <?php
 class History extends MY_Controller{
 
-    public $mids = array(); //存放参与对比博物馆的id
-    public $date_start = null; //查询开始日期
-    public $date_end = null; //查询结束日期
-    public $date_list = array(); //日期列表
-    public $week = array();
+    protected $mids = array(); //存放参与对比博物馆的id
+    protected $date_start = null; //查询开始日期
+    protected $date_end = null; //查询结束日期
+    protected $date_list = array(); //日期列表
+    protected $week = array();
 
     public function __construct(){
         parent::__construct();
@@ -43,7 +43,6 @@ class History extends MY_Controller{
         }
 
         $this->date_list = $this->_date_list($this->date_start,$this->date_end);
-     
     }
 
     //生成日期列表
@@ -139,11 +138,12 @@ class History extends MY_Controller{
 
     public function line_chart(){
         $data = array();
-        $data['date'] = $this->week;
+        if($this->get("definite_time") == "week") $data['date'] = $this->week;
+        elseif($this->get("definite_time") == "month") $data['date'] = $this->date_list;
         $data['compliance'] = $this->compliance();
         $data = array_merge($data,$this->stability());
-
-        echo json_encode($data,JSON_UNESCAPED_UNICODE);
+        var_dump($data);
+        //echo json_encode($data,JSON_UNESCAPED_UNICODE);
 
     }
 
