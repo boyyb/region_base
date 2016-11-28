@@ -149,7 +149,7 @@ class Details extends MY_Controller{
     //数据调用
     public function data(){
         foreach($this->env_param as $param){
-            $ret[$param]['unit'] = $this->unit[$param]; //单位
+            $ret[$param]['unit'] = $this->unit[$param]; //环境参数单位
             if($param == "temperature"){
                 $ret["temperature"]['list'] = $this->_data(7);
             }elseif($param == "uv"){
@@ -196,7 +196,7 @@ class Details extends MY_Controller{
                 );
             }
         }
-        
+
         $this->response($ret);
     }
 
