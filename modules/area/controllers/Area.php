@@ -130,7 +130,7 @@ class Area extends MY_Controller{
                 "average"=>$item["average"],
                 "count_abnormal"=>$item["count_abnormal"],
                 "standard"=>$item["standard"],
-                "compliance"=>100*$item["compliance"]."%"
+                "compliance"=>$item["compliance"]
             );
             $data_tables[$item["param"]]["xdata"][] = $arr["museum"];
             $data_tables[$item["param"]]["ydistance"][] = $arr["distance"];
@@ -168,6 +168,7 @@ class Area extends MY_Controller{
             foreach ($v as $param => $tt){
                 $data = array_key_exists($k,$texture_data)?$texture_data[$k]:array();
                 $data["table"] = array_key_exists($k,$data_tables)?$data_tables[$k]:array();
+                $data["unit"] = $this->unit[$param];
                 if(!empty($tt)){
                     $rs[$param][] = array(
                         "texture"=>implode("、",$tt),

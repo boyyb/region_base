@@ -1,11 +1,11 @@
 <?php
 class History extends MY_Controller{
 
-    public $mids = array(); //存放参与对比博物馆的id
-    public $date_start = null; //查询开始日期
-    public $date_end = null; //查询结束日期
-    public $date_list = array(); //日期列表
-    public $week = array();
+    protected $mids = array(); //存放参与对比博物馆的id
+    protected $date_start = null; //查询开始日期
+    protected $date_end = null; //查询结束日期
+    protected $date_list = array(); //日期列表
+    protected $week = array();
 
     public function __construct(){
         parent::__construct();
@@ -43,7 +43,6 @@ class History extends MY_Controller{
         }
 
         $this->date_list = $this->_date_list($this->date_start,$this->date_end);
-     
     }
 
     //生成日期列表
@@ -80,7 +79,7 @@ class History extends MY_Controller{
                     ->where("mid", $mid)
                     ->get("data_complex")
                     ->result_array();
-                if($dc_datas && $dc_datas[0]['total'])
+                if($dc_datas && $dc_datas[0]['total']) //include sp=0
                     $datas[$mid][$date] = round($dc_datas[0]['standard_percent'],3);
                 else $datas[$mid][$date] = null;
             }
@@ -108,7 +107,7 @@ class History extends MY_Controller{
                     ->where("mid", $mid)
                     ->get("data_complex")
                     ->result_array();
-                if($dc_datas && $dc_datas[0]['scatter_temperature'])
+                if($dc_datas && $dc_datas[0]['scatter_temperature']) //排除null值
                     $tc_datas[$mid][$date] = (float)$dc_datas[0]['scatter_temperature'];
                 else $tc_datas[$mid][$date] = null;
 
@@ -139,12 +138,12 @@ class History extends MY_Controller{
 
     public function line_chart(){
         $data = array();
-        $data['date'] = $this->week;
+        if($this->get("definite_time") == "week") $data['date'] = $this->week;
+        else $data['date'] = $this->date_list;
         $data['compliance'] = $this->compliance();
         $data = array_merge($data,$this->stability());
 
-        echo json_encode($data,JSON_UNESCAPED_UNICODE);
-
+        $this->response($data);
     }
 
 }
