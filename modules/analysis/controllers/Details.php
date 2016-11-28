@@ -98,10 +98,11 @@ class Details extends MY_Controller{
                         ->get("data_envtype_param")
                         ->result_array();
                     if(!$dep_data) continue;
-                    $wave_arr['min'][] = explode(",", $dep_data[0]['wave'])[0];
-                    $wave_arr['max'][] = explode(",", $dep_data[0]['wave'])[1];
-                    $wave_arr['min2'][] = explode(",", $dep_data[0]['wave'])[2];
-                    $wave_arr['max2'][] = explode(",", $dep_data[0]['wave'])[3];
+                    $temp = explode(",",$dep_data[0]['wave']);
+                    $wave_arr['min'][] = $temp[0];
+                    $wave_arr['max'][] = $temp[1];
+                    $wave_arr['min2'][] = $temp[2];
+                    $wave_arr['max2'][] = $temp[3];
                     if($dep_data[0]['wave_status']>0){ //存在日波动异常
                         foreach(array(0,1) as $type){
                             $dwa_datas = $this->db
