@@ -110,6 +110,50 @@ class Area extends MY_Controller{
             $texture = $this->texture["common"]+$this->texture["zgkf"]+$this->texture["hh"];
         }
         $arr_minmax = array();
+        $waves = $waves_abnormal = $waves_status = $waves_abnormal_status = array();
+        if (in_array($this->definite_time,array("week","month"))){ // 算本周or本月日波动，取最小值和最大值
+            switch ($this->definite_time){
+                case "week":
+                    $day_num = date("w");
+                    $date_arr = array();
+                    while ($day_num - 1 > 0){
+                        $date_arr[] = "D".date("Ymd",strtotime("-".($day_num-1)." day"));
+                        $day_num --;
+                    }
+                    if(!empty($date_arr)){
+                        $datas = $this->db->select("mid,wave,wave_status,param")
+                            ->where("env_type",$this->env_type)
+                            ->where_in("date",$date_arr)
+                            ->get("data_envtype_param")
+                            ->result_array();
+
+                    }
+                    break;
+                case "month":
+                    $date = "D".date("Ym")."%";
+                    $datas = $this->db->select("mid,wave,wave_status,param")
+                        ->where("env_type",$this->env_type)
+                        ->where("date like",$date)
+                        ->get("data_envtype_param")
+                        ->result_array();
+            }
+            if(isset($datas) && !empty($datas)){
+                foreach ($datas as $data){
+                    if($data["wave"]){
+                        list($w1,$w2,$w3,$w4) = explode(",",$data["wave"]);
+                        $arr = sprintf("%04d",decbin($data["wave_status"]));
+                        $waves[$data["mid"]][$data["param"]][] = $w1;
+                        $waves[$data["mid"]][$data["param"]][] = $w2;
+                        $waves_abnormal[$data["mid"]][$data["param"]][] = $w3;
+                        $waves_abnormal[$data["mid"]][$data["param"]][] = $w4;
+                        $waves_status[$data["mid"]][$data["param"]][] = $arr[0];
+                        $waves_status[$data["mid"]][$data["param"]][] = $arr[1];
+                        $waves_abnormal_status[$data["mid"]][$data["param"]][] = $arr[2];
+                        $waves_abnormal_status[$data["mid"]][$data["param"]][] = $arr[3];
+                    }
+                }
+            }
+        }
         $all =  $this->db->select("p.*")
             ->join("data_envtype_param p","p.mid=m.id")
             ->where("p.date",$this->date)
@@ -123,6 +167,7 @@ class Area extends MY_Controller{
             $arr = array(
                 "mid"=>$item["mid"],
                 "museum"=>$this->museum[$item["mid"]],
+                "depid"=>$item["id"],
                 "max"=>$item["max"],
                 "min"=>$item["min"],
                 "distance"=>$item["max"] - $item["min"],
@@ -144,17 +189,46 @@ class Area extends MY_Controller{
                 $data_tables[$item["param"]]["ywave"]["add"][] = $w2 - $w1;
                 $data_tables[$item["param"]]["ywave_normal"]["base"][] = $w3;
                 $data_tables[$item["param"]]["ywave_normal"]["add"][] = $w4 - $w3;
-                $arr["wave"] = $w1." - ".$w2;
-                $arr["wave_normal"] = $w3." - ".$w4;
+                $arr["wave"] = array($w1,$w2);
+                $arr["wave_normal"] = array($w3,$w4);
                 if($item["wave_status"] !== null){
                     $arr["wave_status"] = sprintf("%04d",decbin($item["wave_status"]));
+                }
+            }else{
+                if(array_key_exists($item["mid"],$waves) && array_key_exists($item["param"],$waves[$item["mid"]])){
+                    $w1 = min($waves[$item["mid"]][$item["param"]]);
+                    $w2 = max($waves[$item["mid"]][$item["param"]]);
+                    $w3 = min($waves_abnormal[$item["mid"]][$item["param"]]);
+                    $w4 = max($waves_abnormal[$item["mid"]][$item["param"]]);
+                    $data_tables[$item["param"]]["ywave"]["base"][] = $w1;
+                    $data_tables[$item["param"]]["ywave"]["add"][] = $w2 - $w1;
+                    $data_tables[$item["param"]]["ywave_normal"]["base"][] = $w3;
+                    $data_tables[$item["param"]]["ywave_normal"]["add"][] = $w4 - $w3;
+                    $arr["wave"] = array($w1,$w2);
+                    $arr["wave_normal"] = array($w3,$w4);
+                    $status = "";
+                    $arr_wave = array($w1,$w2);
+                    $arr_wave_normal = array($w3,$w4);
+                    foreach ($arr_wave as $wave){
+                        $k = array_search($wave, $waves[$item["mid"]][$item["param"]]);
+                            if(($k || $k == 0) && array_key_exists($k,$waves_status[$item["mid"]][$item["param"]])){
+                                $status .= $waves_status[$item["mid"]][$item["param"]][$k];
+                            }
+
+                    }
+                    foreach ($arr_wave_normal as $wave){
+                        $k = array_search($wave, $waves_abnormal[$item["mid"]][$item["param"]]);
+                            if(($k || $k == 0) && array_key_exists($k,$waves_abnormal_status[$item["mid"]][$item["param"]])){
+                                $status .= $waves_abnormal_status[$item["mid"]][$item["param"]][$k];
+                            }
+                    }
+                    $arr["wave_status"] = $status;
                 }
             }
 
             $texture_data[$item["param"]]["list"][] = $arr;
 
         }
-
         foreach ($texture_data as $param=>$value){
             if(array_key_exists($param, $arr_minmax)){
                 $texture_data[$param]["left"] = min($arr_minmax[$param])*0.9;
@@ -181,6 +255,32 @@ class Area extends MY_Controller{
         }
 
         $this->response($rs);
+    }
+
+    public function abnormal_get(){ //异常值获取
+        $depid = $this->get("depid");
+        $abnormal = array();
+        if($depid){
+            $abnormal = $this->db->select("date,time,equip_no,val")
+                     ->where("depid",$depid)
+                     ->get("data_abnormal")
+                     ->result_array();
+        }
+        $this->response($abnormal);
+    }
+
+    public function wave_abnormal_get(){ //日波动异常获取
+        $depid = $this->get("depid");
+        $type = $this->get("type");
+        $abnormal = array();
+        if($depid && ($type || $type == 0)){
+            $abnormal = $this->db->select("date,env_name,val")
+                ->where("depid",$depid)
+                ->where("type",$type)
+                ->get("data_wave_abnormal")
+                ->result_array();
+        }
+        $this->response($abnormal);
     }
 
     public function analysis_get(){
