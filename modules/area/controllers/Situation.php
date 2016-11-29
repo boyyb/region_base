@@ -8,6 +8,8 @@ class Situation extends MY_Controller{
 
     function __construct(){
         parent::__construct();
+        if(!$this->get("env_type") || !$this->get("definite_time") || !$this->get("env_param"))
+            $this->response(array("error"=>"缺少必要参数！"));
         $date_str = $this->get("definite_time");
         switch ($date_str){
             case "yesterday": //昨天
