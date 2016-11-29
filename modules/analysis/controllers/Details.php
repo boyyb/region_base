@@ -1,40 +1,53 @@
 <?php
 class Details extends MY_Controller{
 
-    public $mids = array(); //参与对比博物馆id
-    public $date = null; //对比日期
-    public $date_start = null; //日波动统计开始日期
-    public $date_end = null; //日波动统计结束日期
-    public $date_list = array();//日波动日期列表
+    protected $mids = array(); //参与对比博物馆id
+    protected $date = null; //查询日期
+    protected $date_start = null; //日波动统计开始日期
+    protected $date_end = null; //日波动统计结束日期
+    protected $date_list = array();//日波动日期列表
 
     function __construct(){
         parent::__construct();
+        if(!$this->get("env_type") || !$this->get("definite_time") || !$this->get("env_param") || !$this->get("mids"))
+            $this->response(array("error"=>"缺少必要参数！"));
         $date_str = $this->get("definite_time");
         switch ($date_str){
             case "yesterday": //昨天
-                $this->date = "D".date("Ymd",time() - 24*60*60);
-                $this->date_start = $this->date_end = date("Ymd",time() - 24*60*60);
+                $this->date = "D".date("Ymd",strtotime('-1 day'));
+                $this->date_start = $this->date_end = date("Ymd",strtotime('-1 day'));
                 break;
             case "before_yes": //前天
-                $this->date = "D".date("Ymd",time() - 24*60*60*2);
-                $this->date_start = $this->date_end = date("Ymd",time() - 24*60*60*2);
+                $this->date = "D".date("Ymd",strtotime('-2 day'));
+                $this->date_start = $this->date_end = date("Ymd",strtotime('-2 day'));
                 break;
             case "week": //本周
-                $this->date = "W".date("YW");
-                $this->date_start = date("Ymd",mktime(0,0,0,date('m'),date('d')-date('w')+1,date('y')));
-                $this->date_end = date("Ymd",time() - 24*60*60);
+                if(date("w") == 1){ //周一查上周数据
+                    $this->date_start = date("Ymd",mktime(0,0,0,date('m'),date('d')-date('w')-6,date('y')));
+                    $this->date_end = date("Ymd",mktime(23,59,59,date('m'),date('d')-date('w'),date('y')));
+                    $this->date = "W".date("YW",strtotime($this->date_end));
+                }else{ //本周数据
+                    $this->date_start = date("Ymd",mktime(0,0,0,date("m"),date("d")-(date("w")==0?7:date("w"))+1,date("Y")));
+                    $this->date_end = date("Ymd",strtotime('-1 day'));
+                    $this->date = "W".date("YW");
+                }
                 break;
             case "month": //本月
-                $this->date = "M".date("Ym");
-                $this->date_start = date("Ymd",mktime(0,0,0,date('m'),1,date('y')));
-                $this->date_end = date("Ymd",time() - 24*60*60);
+                if(date("d") == "01"){ //1号查上月数据
+                    $this->date_start = date("Ymd",mktime(0,0,0,date('m')-1,1,date('y')));
+                    $this->date_end = date("Ymd",mktime(23,59,59,date("m"),0,date("y")));
+                    $this->date = "M".date("Ym",strtotime($this->date_end));
+                }else{
+                    $this->date_start = date("Ymd",mktime(0,0,0,date('m'),1,date('y')));
+                    $this->date_end = date("Ymd",strtotime('-1 day'));
+                    $this->date = "M".date("Ym");
+                }
                 break;
             default:
-                $this->date = "D".$date_str;
-                $this->date_start = $this->date_end = $date_str; //指定某一天
-
-
+                $this->date = "D".$date_str; //某一天
+                $this->date_start = $this->date_end = $date_str;
         }
+
         $this->mids = explode(",",$this->get("mids")); //mids=2,3,4
         $this->date_list = $this->_date_list($this->date_start,$this->date_end);
 
@@ -67,59 +80,41 @@ class Details extends MY_Controller{
             if(!$v) continue;
             //异常值统计
             $value_abnormal = array();
-            if($v['count_abnormal']){
+            if($v['count_abnormal']){ //存在异常值
                 $value_abnormal = $this->db
                     ->select("CONCAT(`date`,\" \",`time`) as date,equip_no,val")
                     ->where("depid",$v['id'])
                     ->get("data_abnormal")
                     ->result_array();
             }
-            //日波动统计(天数据直接取值，周/月数据按天分别统计)
+            //日波动统计(按天统计)
             $wave_abnormal = $wave_abnormal2 = array();
             $wave_arr = array();
             if(in_array($param_id,array(1,2,3,7,10,12))){ //仅计算温湿度
-                if($this->date_start == $this->date_end){ //天数据(含本周/本月第二天)
-                    $wave_arr['min'][] = explode(",",$v['wave'])[0];
-                    $wave_arr['max'][] = explode(",",$v['wave'])[1];
-                    $wave_arr['min2'][] = explode(",",$v['wave'])[2];
-                    $wave_arr['max2'][] = explode(",",$v['wave'])[3];
-                    if($v['wave_status']>0){//存在波动超标
+                foreach($this->date_list as $date) {
+                    $dep_data = $this->db
+                        ->where("date", "D" . $date)
+                        ->where("env_type", $this->env_type)
+                        ->where("mid", $mid)
+                        ->where("param", $param_id)
+                        ->get("data_envtype_param")
+                        ->result_array();
+                    if(!$dep_data) continue;
+                    $temp = explode(",",$dep_data[0]['wave']);
+                    $wave_arr['min'][] = $temp[0];
+                    $wave_arr['max'][] = $temp[1];
+                    $wave_arr['min2'][] = $temp[2];
+                    $wave_arr['max2'][] = $temp[3];
+                    if($dep_data[0]['wave_status']>0){ //存在日波动异常
                         foreach(array(0,1) as $type){
                             $dwa_datas = $this->db
                                 ->select("val,env_name,date")
-                                ->where("depid",$v['id'])
+                                ->where("depid",$dep_data[0]['id'])
                                 ->where("type",$type)
                                 ->get("data_wave_abnormal")
                                 ->result_array();
-                            if($type == 0) $wave_abnormal = $dwa_datas;
-                            else $wave_abnormal2 = $dwa_datas; //剔除异常值的波动超标数据
-                        }
-                    }
-                }elseif($this->date_end > $this->date_start){ // 周/月数据(除本周/本月第二天)
-                    foreach($this->date_list as $date) {
-                        $dep_data = $this->db
-                            ->where("date", "D" . $date)
-                            ->where("env_type", $this->env_type)
-                            ->where("mid", $mid)
-                            ->where("param", $param_id)
-                            ->get("data_envtype_param")
-                            ->result_array();
-                        if(!$dep_data) continue;
-                        $wave_arr['min'][] = explode(",", $dep_data[0]['wave'])[0];
-                        $wave_arr['max'][] = explode(",", $dep_data[0]['wave'])[1];
-                        $wave_arr['min2'][] = explode(",", $dep_data[0]['wave'])[2];
-                        $wave_arr['max2'][] = explode(",", $dep_data[0]['wave'])[3];
-                        if($dep_data[0]['wave_status']>0){
-                            foreach(array(0,1) as $type){
-                                $dwa_datas = $this->db
-                                    ->select("val,env_name,date")
-                                    ->where("depid",$dep_data[0]['id'])
-                                    ->where("type",$type)
-                                    ->get("data_wave_abnormal")
-                                    ->result_array();
-                                if($type == 0) $wave_abnormal = array_merge($wave_abnormal,$dwa_datas);
-                                else $wave_abnormal2 = array_merge($wave_abnormal2,$dwa_datas);
-                            }
+                            if($type == 0) $wave_abnormal = array_merge($wave_abnormal,$dwa_datas); //累加每天的波动异常数据
+                            else $wave_abnormal2 = array_merge($wave_abnormal2,$dwa_datas);
                         }
                     }
                 }
@@ -138,7 +133,7 @@ class Details extends MY_Controller{
                 "average"=>$v['average'],
                 "middle"=>$v['middle'],
                 "distance"=>(string)($v["max"]-$v['min']),
-                "compliance"=>$v['compliance']*100 . "%",
+                "compliance"=>$v['compliance'],
                 "standard"=>$v['standard'],
                 "count_abnormal"=>$v['count_abnormal'],
                 "value_abnormal"=>$value_abnormal,
@@ -157,53 +152,54 @@ class Details extends MY_Controller{
     //数据调用
     public function data(){
         foreach($this->env_param as $param){
+            $ret[$param]['unit'] = $this->unit[$param]; //环境参数单位
             if($param == "temperature"){
-                $ret['temperature'] = $this->_data(7);
+                $ret["temperature"]['list'] = $this->_data(7);
             }elseif($param == "uv"){
-                $ret['uv'] = $this->_data(8);
+                $ret['uv']['list'] = $this->_data(8);
             }elseif($param == "voc"){
-                $ret['voc'] = $this->_data(9);
+                $ret['voc']['list'] = $this->_data(9);
             }elseif($param == "humidity" && $this->env_type != "展厅"){ // 展柜/库房要分材质
-                $ret['humidity'][] = array(
+                $ret['humidity']['data'][] = array(
                     "texture"=>"石质、陶器、瓷器",
-                    "data"=>$this->_data(1)
+                    "list"=>$this->_data(1)
                 );
-                $ret['humidity'][] = array(
+                $ret['humidity']['data'][] = array(
                     "texture"=>"铁质、青铜",
-                    "data"=>$this->_data(2)
+                    "list"=>$this->_data(2)
                 );
-                $ret['humidity'][] = array(
+                $ret['humidity']['data'][] = array(
                     "texture"=>"纸质、壁画、纺织品、漆木器、其他",
-                    "data"=>$this->_data(3)
+                    "list"=>$this->_data(3)
                 );
                 $ret['humidity'][] = array(
                     "texture"=>"混合材质",
                     "data"=>$this->_data(12)
                 );
             }elseif($param == "humidity" && $this->env_type == "展厅"){ //展厅不分材质
-                $ret['humidity'] = $this->_data(10);
+                $ret['humidity']['list'] = $this->_data(10);
             }elseif($param == "light" && $this->env_type == "展厅"){ //展厅不分材质
-                $ret['light'] = $this->_data(11);
+                $ret['light']['list'] = $this->_data(11);
             }elseif($param == "light" && $this->env_type != "展厅"){ //展柜库房分材质
-                $ret['light'][] = array(
+                $ret['light']['data'][] = array(
                     "texture"=>"石质、陶器、瓷器、铁质、青铜",
-                    "data"=>$this->_data(4)
+                    "list"=>$this->_data(4)
                 );
-                $ret['light'][] = array(
+                $ret['light']['data'][] = array(
                     "texture"=>"纸质、壁画、纺织品",
-                    "data"=>$this->_data(5)
+                    "list"=>$this->_data(5)
                 );
-                $ret['light'][] = array(
+                $ret['light']['data'][] = array(
                     "texture"=>"漆木器、其他",
-                    "data"=>$this->_data(6)
+                    "list"=>$this->_data(6)
                 );
-                $ret['light'][] = array(
+                $ret['light']['data'][] = array(
                     "texture"=>"混合材质",
-                    "data"=>$this->_data(13)
+                    "list"=>$this->_data(13)
                 );
             }
         }
-        var_dump($ret);
+
         $this->response($ret);
     }
 

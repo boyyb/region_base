@@ -1,13 +1,15 @@
 <?php
 class Situation extends MY_Controller{
 
-    public $date = null; //通用查询日期字符串
-    public $date_start = null; //日波动查询开始日期 20160101
-    public $date_end = null; //日波动查询结束日期 20160105
-    public $date_list = array(); //日波动查询的日期列表
+    protected $date = null; //通用查询日期字符串
+    protected $date_start = null; //日波动查询开始日期 20160101
+    protected $date_end = null; //日波动查询结束日期 20160105
+    protected $date_list = array(); //日波动查询的日期列表
 
     function __construct(){
         parent::__construct();
+        if(!$this->get("env_type") || !$this->get("definite_time") || !$this->get("env_param"))
+            $this->response(array("error"=>"缺少必要参数！"));
         $date_str = $this->get("definite_time");
         switch ($date_str){
             case "yesterday": //昨天
@@ -46,11 +48,6 @@ class Situation extends MY_Controller{
         }
 
         $this->date_list = $this->_date_list($this->date_start,$this->date_end);
-        /*var_dump($this->date_start);
-        var_dump($this->date_end);
-        var_dump($this->date_list);
-        var_dump($this->date);
-        echo "<hr/>";*/
     }
 
     //生成日期列表
@@ -85,6 +82,7 @@ class Situation extends MY_Controller{
             ->where("env_type",$env)
             ->get("data_complex")
             ->result_array();
+        if(!$dc_datas) return array();
         $data = array_column($dc_datas,"standard_percent");
 
         //达标率区间参数
@@ -98,6 +96,7 @@ class Situation extends MY_Controller{
         //构建返回数据
         foreach($sp as $k=>$v){
             foreach($data as $v1){
+                if(!$v1) continue; // 排除null值 不计入统计数量
                 if($v1<$v['max'] && $v1>=$v['min']) $data1[$k][] = $v1;
             }
             if(isset($data1[$k])) $sp_data[] = array(
@@ -110,20 +109,20 @@ class Situation extends MY_Controller{
         return $sp_data;
     }
 
-    //环形图-稳定性
+    //环形图-稳定性(温度湿度)
     protected function pie_stability(){
         $env = $this->env_type;
         $ts = array( //温度
             1=>array("name"=>"0~4%(含)","min"=>0,"max"=>0.04),
             2=>array("name"=>"4%~6%(含)","min"=>0.04,"max"=>0.06),
             3=>array("name"=>"6%~7%(含)","min"=>0.06,"max"=>0.07),
-            4=>array("name"=>">7%","min"=>0.07,"max"=>999)
+            4=>array("name"=>">7%","min"=>0.07,"max"=>9999)
         );
         $hs = array( //湿度
             1=>array("name"=>"0~2%(含)","min"=>0,"max"=>0.02),
             2=>array("name"=>"2%~3%(含)","min"=>0.02,"max"=>0.03),
             3=>array("name"=>"3%~3.5%(含)","min"=>0.03,"max"=>0.035),
-            4=>array("name"=>">3.5%","min"=>0.035,"max"=>999)
+            4=>array("name"=>">3.5%","min"=>0.035,"max"=>9999)
         );
 
         $dc_datas = $this->db
@@ -133,7 +132,7 @@ class Situation extends MY_Controller{
             ->order_by("mid asc")
             ->get("data_complex")
             ->result_array();
-
+        if(!$dc_datas) return array("temperature_scatter"=>array(),"humidity_scatter"=>array());
         //温湿度各博物馆的离散数据
         foreach($dc_datas as $v){
             $data["temperature_scatter"][] = $v["scatter_temperature"];
@@ -143,7 +142,8 @@ class Situation extends MY_Controller{
         //温度统计
         foreach($ts as $k=>$v){
             foreach($data['temperature_scatter'] as $v1){
-                if($v1<=$v['max'] && $v1>$v['min']) $data1[$k][] = $v1; //null不计入统计
+                if(!$v1) continue;
+                if($v1<=$v['max'] && $v1>$v['min']) $data1[$k][] = $v1;
             }
             if(isset($data1[$k])) $ts_data[] = array(
                 "value"=>count($data1[$k]),
@@ -155,6 +155,7 @@ class Situation extends MY_Controller{
         //湿度统计
         foreach($hs as $k=>$v){
             foreach($data['humidity_scatter'] as $v1){
+                if(!$v1) continue;
                 if($v1<=$v['max'] && $v1>$v['min']) $data2[$k][] = $v1;
             }
             if(isset($data2[$k])) $hs_data[] = array(
@@ -214,7 +215,7 @@ class Situation extends MY_Controller{
             ->order_by("mid")
             ->get("data_complex")
             ->result_array();
-        if(!$dc_datas) die(json_encode(array()));
+        if(!$dc_datas) die($this->response(array("map_name"=>app_config("map_name"),"data"=>array())));
         foreach($dc_datas as $v){
             $datas[$v['mid']] = $v;
         }
@@ -291,11 +292,12 @@ class Situation extends MY_Controller{
     public function statistic(){
         $data = array();
         $data["total"] = $this->db->count_all_results("museum");
-        $data['show'] = $this->db
+        $data['show'] = $data['total'];
+        /*$data['show'] = $this->db
             ->select("distinct(mid)")
             ->where("date",$this->date)
             ->where("env_type",$this->env_type)
-            ->count_all_results("data_complex");
+            ->count_all_results("data_complex");*/
 
         $this->response($data);
     }
