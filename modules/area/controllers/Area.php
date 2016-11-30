@@ -528,7 +528,52 @@ class Area extends MY_Controller{
                 ->where("type",$type)
                 ->get("data_wave_abnormal")
                 ->result_array();
+            if(!$abnormal){
+                $envtype = $this->db->select("date,mid,env_type,param")
+                    ->where("id",$depid)
+                    ->get("data_envtype_param")
+                    ->row_array();
+                if($envtype && $envtype["date"]){
+                    $ids = $ids_arr = array();
+                    if($envtype["date"][0] == "W"){
+                        $day_num = date("w");
+                        $date_arr = array();
+                        while ($day_num - 1 > 0){
+                            $date_arr[] = "D".date("Ymd",strtotime("-".($day_num-1)." day"));
+                            $day_num --;
+                        }
+                        if(!empty($date_arr)){
+                            $ids = $this->db->select("id")
+                                ->where("mid",$envtype["mid"])
+                                ->where("env_type",$envtype["env_type"])
+                                ->where("param",$envtype["param"])
+                                ->where_in("date",$date_arr)
+                                ->get("data_envtype_param")
+                                ->result_array();
+                        }
+                    }elseif ($envtype["date"][0] == "M"){
+                        $date = "D".date("Ym")."%";
+                        $ids = $this->db->select("id")
+                            ->where("mid",$envtype["mid"])
+                            ->where("env_type",$envtype["env_type"])
+                            ->where("param",$envtype["param"])
+                            ->where("date like",$date)
+                            ->get("data_envtype_param")
+                            ->result_array();
+                    }
 
+                    if($ids){
+                        foreach ($ids as $id){
+                            $ids_arr[] = $id["id"];
+                        }
+                        $abnormal = $this->db->select("date,env_name,val")
+                            ->where_in("depid",$ids_arr)
+                            ->where("type",$type)
+                            ->get("data_wave_abnormal")
+                            ->result_array();
+                    }
+                }
+            }
         }
         $this->response($abnormal);
     }
