@@ -60,7 +60,7 @@ class Situation extends MY_Controller{
     }
 
     //环形图-达标率
-    public function pie_compliance(){
+    public function pie_compliance_get(){
         $env = $this->env_type;
         $param = $this->env_param;
 
@@ -82,8 +82,8 @@ class Situation extends MY_Controller{
             ->where("env_type",$env)
             ->get("data_complex")
             ->result_array();
-        if(!$dc_datas) return array();
-        $data = array_column($dc_datas,"standard_percent");
+        if(!$dc_datas) $this->response(array()); //数据库无对应日期数据
+        $data = array_column($dc_datas,"standard_percent");//各博物馆达标率
 
         //达标率区间参数
         $sp = array(
@@ -96,7 +96,7 @@ class Situation extends MY_Controller{
         //构建返回数据
         foreach($sp as $k=>$v){
             foreach($data as $v1){
-                if(!$v1) continue; // 排除null值 不计入统计数量
+                if(!$v1) continue; // 排除null值 不计入统计
                 if($v1<$v['max'] && $v1>=$v['min']) $data1[$k][] = $v1;
             }
             if(isset($data1[$k])) $sp_data[] = array(
@@ -176,19 +176,19 @@ class Situation extends MY_Controller{
         return $scatter;
     }
 
-    public function pie_scatter_temperature(){
+    public function pie_scatter_temperature_get(){
         $data = $this->pie_stability();
         $this->response($data['temperature']);
     }
 
-    public function pie_scatter_humidity(){
+    public function pie_scatter_humidity_get(){
         $data = $this->pie_stability();
         $this->response($data['humidity']);
     }
 
 
     //地图
-    public function map(){
+    public function map_get(){
         $mid = $this->get("mids");//接收对比分析的博物馆id 格式mid=2,3,4
         $env = $this->env_type;
         $param = $this->env_param;
@@ -297,11 +297,11 @@ class Situation extends MY_Controller{
     }
 
     //统计博物馆数量统计
-    public function statistic(){
+    public function statistic_get(){
         $data = array();
         $data["total"] = $this->db->count_all_results("museum");
         $data['show'] = $data['total'];
-        
+
         $this->response($data);
     }
 

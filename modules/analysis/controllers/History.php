@@ -59,7 +59,7 @@ class History extends MY_Controller{
     }
 
     //历史达标率-多博物馆对比
-    protected function compliance(){
+    public function compliance_get(){
         //构建达标率计算字符串
         $totalstr = '';
         $abnormalstr = '';
@@ -85,20 +85,26 @@ class History extends MY_Controller{
                     $datas[$mid][$date] = round($dc_datas[0]['standard_percent'],3);
                 else $datas[$mid][$date] = null;
             }
+            $names[] = $this->museum[$mid];
         }
         //构建返回数据格式
+        $ret['title'] = "历史达标率";
+        $ret['names'] = $names;
+        if($this->get("definite_time") == "week") $ret['date'] = $this->week;
+        else $ret['date'] = $this->date_list;
         foreach($datas as $k => $v){
-            $ret[] = array(
+            $ret['list'][] = array(
                 "mid"=>$k,
                 "name"=>$this->museum[$k],
                 "data"=>array_values($v)
             );
         }
-        return $ret;
+
+        $this->response($ret);
     }
 
     //稳定性（温度/湿度）- 多博物馆对比
-    protected function stability(){
+    protected function scatter(){
         //各个博物馆分日期显示温度湿度离散数据
         foreach($this->mids as $mid) {
             foreach($this->date_list as $date){
@@ -117,10 +123,18 @@ class History extends MY_Controller{
                     $hc_datas[$mid][$date] = (float)$dc_datas[0]['scatter_humidity'];
                 else $hc_datas[$mid][$date] = null;
             }
+            $names[] = $this->museum[$mid];
         }
+
+        if($this->get("definite_time") == "week") $date = $this->week;
+        else $date = $this->date_list;
+        $ret['temperature']['title'] = "历史稳定性-温度（离散系数）";
+        $ret['humidity']['title'] = "历史稳定性-湿度（离散系数）";
+        $ret['temperature']['names'] = $ret['humidity']['names'] =$names;
+        $ret['temperature']['date'] = $ret['humidity']['date'] =$date;
         //温度
         foreach($tc_datas as $k=>$v){
-            $ret['temperature_scatter'][] = array(
+            $ret['temperature']['list'][] = array(
                 "mid"=>$k,
                 "name"=>$this->museum[$k],
                 "data"=>array_values($v)
@@ -128,7 +142,7 @@ class History extends MY_Controller{
         }
         //湿度
         foreach($hc_datas as $k=>$v){
-            $ret['humidity_scatter'][] = array(
+            $ret['humidity']['list'][] = array(
                 "mid"=>$k,
                 "name"=>$this->museum[$k],
                 "data"=>array_values($v)
@@ -138,14 +152,14 @@ class History extends MY_Controller{
         return $ret;
     }
 
-    public function line_chart(){
-        $data = array();
-        if($this->get("definite_time") == "week") $data['date'] = $this->week;
-        else $data['date'] = $this->date_list;
-        $data['compliance'] = $this->compliance();
-        $data = array_merge($data,$this->stability());
+    public function scatter_temperature_get(){
+        $data = $this->scatter();
+        $this->response($data['temperature']);
+    }
 
-        $this->response($data);
+    public function scatter_humidity_get(){
+        $data = $this->scatter();
+        $this->response($data['humidity']);
     }
 
 }
