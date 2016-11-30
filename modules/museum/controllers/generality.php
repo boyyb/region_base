@@ -54,6 +54,7 @@ class Generality extends REST_Controller{
                 }
             }
         }
+        
         foreach ($base as $value) {
             $data = array();
             if ($value["mid"]) {
