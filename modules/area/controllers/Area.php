@@ -169,28 +169,28 @@ class Area extends MY_Controller{
                 "compliance"=>$item["compliance"]*100
             );
             $data_tables[$item["param"]]["xdata"][] = $arr["museum"];
-            $data_tables[$item["param"]]["ydistance"][] = $arr["distance"];
-            $data_tables[$item["param"]]["ycompliance"][] = $arr["compliance"];
-            $data_tables[$item["param"]]["ycount_abnormal"][] = $arr["count_abnormal"];
-            $data_tables[$item["param"]]["yaverage"][] = $arr["average"];
-            $data_tables[$item["param"]]["ystandard"][] = $arr["standard"];
+            $data_tables[$item["param"]]["distance"][] = $arr["distance"];
+            $data_tables[$item["param"]]["compliance"][] = $arr["compliance"];
+            $data_tables[$item["param"]]["count_abnormal"][] = $arr["count_abnormal"];
+            $data_tables[$item["param"]]["average"][] = $arr["average"];
+            $data_tables[$item["param"]]["standard"][] = $arr["standard"];
             $arr["wave"] = $arr["wave_normal"] = array();
             if($item["wave"]){
                 list($w1,$w2,$w3,$w4) = explode(",",$item["wave"]);
-                $data_tables[$item["param"]]["ywave"]["base"][] = $w1;
-                $data_tables[$item["param"]]["ywave"]["add"][] = $w2 - $w1;
-                $data_tables[$item["param"]]["ywave_normal"]["base"][] = $w3;
-                $data_tables[$item["param"]]["ywave_normal"]["add"][] = $w4 - $w3;
+                $data_tables[$item["param"]]["wave"]["base"][] = $w1;
+                $data_tables[$item["param"]]["wave"]["add"][] = $w2 - $w1;
+                $data_tables[$item["param"]]["wave_normal"]["base"][] = $w3;
+                $data_tables[$item["param"]]["wave_normal"]["add"][] = $w4 - $w3;
             }else{
                 if(array_key_exists($item["mid"],$waves) && array_key_exists($item["param"],$waves[$item["mid"]])){
                     $w1 = min($waves[$item["mid"]][$item["param"]]);
                     $w2 = max($waves[$item["mid"]][$item["param"]]);
                     $w3 = min($waves_abnormal[$item["mid"]][$item["param"]]);
                     $w4 = max($waves_abnormal[$item["mid"]][$item["param"]]);
-                    $data_tables[$item["param"]]["ywave"]["base"][] = $w1;
-                    $data_tables[$item["param"]]["ywave"]["add"][] = $w2 - $w1;
-                    $data_tables[$item["param"]]["ywave_normal"]["base"][] = $w3;
-                    $data_tables[$item["param"]]["ywave_normal"]["add"][] = $w4 - $w3;
+                    $data_tables[$item["param"]]["wave"]["base"][] = $w1;
+                    $data_tables[$item["param"]]["wave"]["add"][] = $w2 - $w1;
+                    $data_tables[$item["param"]]["wave_normal"]["base"][] = $w3;
+                    $data_tables[$item["param"]]["wave_normal"]["add"][] = $w4 - $w3;
                 }
             }
         }
