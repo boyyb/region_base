@@ -528,6 +528,7 @@ class Area extends MY_Controller{
                 ->where("type",$type)
                 ->get("data_wave_abnormal")
                 ->result_array();
+
         }
         $this->response($abnormal);
     }
