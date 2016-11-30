@@ -37,8 +37,6 @@ class Login extends MY_Controller{
         // 同步
         $result['results'] = $this->_sync($row);
         $result['permissions'] = $row['permissions'];
-        // 用户行为记录
-        // $result['behavior'] = $this->user_model->get_behavior($row['id']);
 
         $this->response($result);
     }
