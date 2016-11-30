@@ -103,13 +103,11 @@ class Area extends MY_Controller{
     }
 
     public function param_table_get(){ //区域详情-环境指标统计详情-图表数据
-        $texture_data = $rs = array();
-        if($this->env_type == "展厅"){
-            $texture = $this->texture["common"]+$this->texture["zt"];
-        }else{
-            $texture = $this->texture["common"]+$this->texture["zgkf"]+$this->texture["hh"];
+        $k = $this->get("key"); //材质对应编号
+        $table = $this->get("table"); //表类型
+        if(!$k || !$table){
+            $this->response();
         }
-        $arr_minmax = array();
         $waves = $waves_abnormal = $waves_status = $waves_abnormal_status = array();
         if (in_array($this->definite_time,array("week","month"))){ // 算本周or本月日波动，取最小值和最大值
             switch ($this->definite_time){
@@ -162,20 +160,13 @@ class Area extends MY_Controller{
             ->result_array();
         $data_tables = array();
         foreach ($all as $item) {
-            $arr_minmax[$item["param"]][] = $item["max"];
-            $arr_minmax[$item["param"]][] = $item["min"];
             $arr = array(
-                "mid"=>$item["mid"],
                 "museum"=>$this->museum[$item["mid"]],
-                "depid"=>$item["id"],
-                "max"=>$item["max"],
-                "min"=>$item["min"],
                 "distance"=>$item["max"] - $item["min"],
-                "middle"=>$item["middle"],
                 "average"=>$item["average"],
                 "count_abnormal"=>$item["count_abnormal"],
                 "standard"=>$item["standard"],
-                "compliance"=>$item["compliance"]
+                "compliance"=>$item["compliance"]*100
             );
             $data_tables[$item["param"]]["xdata"][] = $arr["museum"];
             $data_tables[$item["param"]]["ydistance"][] = $arr["distance"];
@@ -190,16 +181,6 @@ class Area extends MY_Controller{
                 $data_tables[$item["param"]]["ywave"]["add"][] = $w2 - $w1;
                 $data_tables[$item["param"]]["ywave_normal"]["base"][] = $w3;
                 $data_tables[$item["param"]]["ywave_normal"]["add"][] = $w4 - $w3;
-                if($item["wave_status"] !== null){
-                    $wave_status= sprintf("%04d",decbin($item["wave_status"]));
-                    if(strlen($wave_status) == 4){
-                        $arr["wave"][] = array("data"=>$w1,"status"=>$wave_status[0]);
-                        $arr["wave"][] = array("data"=>$w2,"status"=>$wave_status[1]);
-                        $arr["wave_normal"][] = array("data"=>$w3,"status"=>$wave_status[2]);
-                        $arr["wave_normal"][] = array("data"=>$w4,"status"=>$wave_status[3]);
-                    }
-
-                }
             }else{
                 if(array_key_exists($item["mid"],$waves) && array_key_exists($item["param"],$waves[$item["mid"]])){
                     $w1 = min($waves[$item["mid"]][$item["param"]]);
@@ -210,46 +191,15 @@ class Area extends MY_Controller{
                     $data_tables[$item["param"]]["ywave"]["add"][] = $w2 - $w1;
                     $data_tables[$item["param"]]["ywave_normal"]["base"][] = $w3;
                     $data_tables[$item["param"]]["ywave_normal"]["add"][] = $w4 - $w3;
-                    $arr_wave = array($w1,$w2);
-                    $arr_wave_normal = array($w3,$w4);
-                    foreach ($arr_wave as $wave){
-                        $k = array_search($wave, $waves[$item["mid"]][$item["param"]]);
-                        if(($k || $k == 0) && array_key_exists($k,$waves_status[$item["mid"]][$item["param"]])){
-                            $status = $waves_status[$item["mid"]][$item["param"]][$k];
-                            $arr["wave"][] = array("data"=>$wave,"status"=>$status);
-                        }
-                    }
-                    foreach ($arr_wave_normal as $wave){
-                        $k = array_search($wave, $waves_abnormal[$item["mid"]][$item["param"]]);
-                        if(($k || $k == 0) && array_key_exists($k,$waves_abnormal_status[$item["mid"]][$item["param"]])){
-                            $status = $waves_abnormal_status[$item["mid"]][$item["param"]][$k];
-                            $arr["wave_normal"][] = array("data"=>$wave,"status"=>$status);
-                        }
-                    }
-                    //$arr["wave_status"] = $status;
-                }
-            }
-
-            $texture_data[$item["param"]]["list"][] = $arr;
-
-        }
-
-        foreach ($texture as $k => $v){
-            foreach ($v as $param => $tt){
-                $data = array_key_exists($k,$texture_data)?$texture_data[$k]:array();
-                $data["table"] = array_key_exists($k,$data_tables)?$data_tables[$k]:array();
-                $data["unit"] = $this->unit[$param];
-                if(!empty($tt)){
-                    $rs[$param][] = array(
-                        "texture"=>implode("、",$tt),
-                        "data"=>$data
-                    );
-                }else{
-                    $rs[$param] = $data;
                 }
             }
         }
 
+        if(array_key_exists($k,$data_tables) && array_key_exists($table,$data_tables[$k])){
+            $this->response(array("xdata"=>$data_tables[$k]["xdata"],"ydata"=>$data_tables[$k][$table]));
+        }else{
+            $this->response();
+        }
     }
 
     public function param_detail_get(){ //区域详情-环境指标统计详情-tab页数据
@@ -311,7 +261,6 @@ class Area extends MY_Controller{
             ->where("p.env_type",$this->env_type)
             ->get("museum m")
             ->result_array();
-        $data_tables = array();
         foreach ($all as $item) {
             $arr_minmax[$item["param"]][] = $item["max"];
             $arr_minmax[$item["param"]][] = $item["min"];
@@ -326,21 +275,11 @@ class Area extends MY_Controller{
                 "average"=>$item["average"],
                 "count_abnormal"=>$item["count_abnormal"],
                 "standard"=>$item["standard"],
-                "compliance"=>$item["compliance"]
+                "compliance"=>$item["compliance"]*100
             );
-            $data_tables[$item["param"]]["xdata"][] = $arr["museum"];
-            $data_tables[$item["param"]]["ydistance"][] = $arr["distance"];
-            $data_tables[$item["param"]]["ycompliance"][] = $arr["compliance"];
-            $data_tables[$item["param"]]["ycount_abnormal"][] = $arr["count_abnormal"];
-            $data_tables[$item["param"]]["yaverage"][] = $arr["average"];
-            $data_tables[$item["param"]]["ystandard"][] = $arr["standard"];
             $arr["wave"] = $arr["wave_normal"] = array();
             if($item["wave"]){
                 list($w1,$w2,$w3,$w4) = explode(",",$item["wave"]);
-                $data_tables[$item["param"]]["ywave"]["base"][] = $w1;
-                $data_tables[$item["param"]]["ywave"]["add"][] = $w2 - $w1;
-                $data_tables[$item["param"]]["ywave_normal"]["base"][] = $w3;
-                $data_tables[$item["param"]]["ywave_normal"]["add"][] = $w4 - $w3;
                 if($item["wave_status"] !== null){
                     $wave_status= sprintf("%04d",decbin($item["wave_status"]));
                     if(strlen($wave_status) == 4){
@@ -357,10 +296,6 @@ class Area extends MY_Controller{
                     $w2 = max($waves[$item["mid"]][$item["param"]]);
                     $w3 = min($waves_abnormal[$item["mid"]][$item["param"]]);
                     $w4 = max($waves_abnormal[$item["mid"]][$item["param"]]);
-                    $data_tables[$item["param"]]["ywave"]["base"][] = $w1;
-                    $data_tables[$item["param"]]["ywave"]["add"][] = $w2 - $w1;
-                    $data_tables[$item["param"]]["ywave_normal"]["base"][] = $w3;
-                    $data_tables[$item["param"]]["ywave_normal"]["add"][] = $w4 - $w3;
                     $arr_wave = array($w1,$w2);
                     $arr_wave_normal = array($w3,$w4);
                     foreach ($arr_wave as $wave){
@@ -393,16 +328,15 @@ class Area extends MY_Controller{
         foreach ($texture as $k => $v){
             foreach ($v as $param => $tt){
                 $data = array_key_exists($k,$texture_data)?$texture_data[$k]:array();
-                $data["table"] = array_key_exists($k,$data_tables)?$data_tables[$k]:array();
                 $data["unit"] = $this->unit[$param];
                 if(!empty($tt)){
                     $rs[$param][] = array(
-                        "param"=>$k,
+                        "key"=>$k,
                         "texture"=>implode("、",$tt),
                         "data"=>$data
                     );
                 }else{
-                    $rs[$param] = $data;
+                    $rs[$param] = array("data"=>$data,"key"=>$k);
                 }
             }
         }
