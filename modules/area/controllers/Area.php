@@ -13,7 +13,7 @@ class Area extends MY_Controller{
         parent::__construct();
     }
 
-    private function detail_standard_get(){ //区域详情达标率
+    private function detail_standard(){ //区域详情达标率
         $params = '';
         $suffix = array("total","abnormal");
         $data_flag = $data_standard = array();
@@ -46,7 +46,7 @@ class Area extends MY_Controller{
         return $data_standard;
     }
 
-    private function data_scatter_get(){
+    private function data_scatter(){
         $data = $this->db->select("c.mid,c.scatter_temperature,c.scatter_humidity")
             ->join("museum m","m.id=c.mid")
             ->where("c.date",$this->date)
@@ -64,8 +64,8 @@ class Area extends MY_Controller{
 
 
     public function general_all_get(){ //区域详情-达标与稳定概况
-        $data_standard = $this->detail_standard_get();
-        $data_scatter = $this->data_scatter_get();
+        $data_standard = $this->detail_standard();
+        $data_scatter = $this->data_scatter();
         $general_standard = $this->general_one($data_standard,"standard");
         $general_scatter_temp = $this->general_one($data_scatter["scatter_temperature"],"scatter");
         $general_scatter_humidity = $this->general_one($data_scatter["scatter_humidity"],"scatter");
@@ -102,6 +102,251 @@ class Area extends MY_Controller{
         return $rs;
     }
 
+    public function param_table_get(){ //区域详情-环境指标统计详情-图表数据
+        $k = $this->get("key"); //材质对应编号
+        $table = $this->get("table"); //表类型
+        if(!$k || !$table){
+            $this->response();
+        }
+        $waves = $waves_abnormal = $waves_status = $waves_abnormal_status = array();
+        if (in_array($this->definite_time,array("week","month"))){ // 算本周or本月日波动，取最小值和最大值
+            switch ($this->definite_time){
+                case "week":
+                    $day_num = date("w");
+                    $date_arr = array();
+                    while ($day_num - 1 > 0){
+                        $date_arr[] = "D".date("Ymd",strtotime("-".($day_num-1)." day"));
+                        $day_num --;
+                    }
+                    if(!empty($date_arr)){
+                        $datas = $this->db->select("mid,wave,wave_status,param")
+                            ->where("env_type",$this->env_type)
+                            ->where_in("date",$date_arr)
+                            ->get("data_envtype_param")
+                            ->result_array();
+
+                    }
+                    break;
+                case "month":
+                    $date = "D".date("Ym")."%";
+                    $datas = $this->db->select("mid,wave,wave_status,param")
+                        ->where("env_type",$this->env_type)
+                        ->where("date like",$date)
+                        ->get("data_envtype_param")
+                        ->result_array();
+            }
+            if(isset($datas) && !empty($datas)){
+                foreach ($datas as $data){
+                    if($data["wave"]){
+                        list($w1,$w2,$w3,$w4) = explode(",",$data["wave"]);
+                        $arr = sprintf("%04d",decbin($data["wave_status"]));
+                        $waves[$data["mid"]][$data["param"]][] = $w1;
+                        $waves[$data["mid"]][$data["param"]][] = $w2;
+                        $waves_abnormal[$data["mid"]][$data["param"]][] = $w3;
+                        $waves_abnormal[$data["mid"]][$data["param"]][] = $w4;
+                        $waves_status[$data["mid"]][$data["param"]][] = $arr[0];
+                        $waves_status[$data["mid"]][$data["param"]][] = $arr[1];
+                        $waves_abnormal_status[$data["mid"]][$data["param"]][] = $arr[2];
+                        $waves_abnormal_status[$data["mid"]][$data["param"]][] = $arr[3];
+                    }
+                }
+            }
+        }
+        $all =  $this->db->select("p.*")
+            ->join("data_envtype_param p","p.mid=m.id")
+            ->where("p.date",$this->date)
+            ->where("p.env_type",$this->env_type)
+            ->get("museum m")
+            ->result_array();
+        $data_tables = array();
+        foreach ($all as $item) {
+            $arr = array(
+                "museum"=>$this->museum[$item["mid"]],
+                "distance"=>$item["max"] - $item["min"],
+                "average"=>$item["average"],
+                "count_abnormal"=>$item["count_abnormal"],
+                "standard"=>$item["standard"],
+                "compliance"=>$item["compliance"]*100
+            );
+            $data_tables[$item["param"]]["xdata"][] = $arr["museum"];
+            $data_tables[$item["param"]]["distance"][] = $arr["distance"];
+            $data_tables[$item["param"]]["compliance"][] = $arr["compliance"];
+            $data_tables[$item["param"]]["count_abnormal"][] = $arr["count_abnormal"];
+            $data_tables[$item["param"]]["average"][] = $arr["average"];
+            $data_tables[$item["param"]]["standard"][] = $arr["standard"];
+            $arr["wave"] = $arr["wave_normal"] = array();
+            if($item["wave"]){
+                list($w1,$w2,$w3,$w4) = explode(",",$item["wave"]);
+                $data_tables[$item["param"]]["wave"]["base"][] = $w1;
+                $data_tables[$item["param"]]["wave"]["add"][] = $w2 - $w1;
+                $data_tables[$item["param"]]["wave_normal"]["base"][] = $w3;
+                $data_tables[$item["param"]]["wave_normal"]["add"][] = $w4 - $w3;
+            }else{
+                if(array_key_exists($item["mid"],$waves) && array_key_exists($item["param"],$waves[$item["mid"]])){
+                    $w1 = min($waves[$item["mid"]][$item["param"]]);
+                    $w2 = max($waves[$item["mid"]][$item["param"]]);
+                    $w3 = min($waves_abnormal[$item["mid"]][$item["param"]]);
+                    $w4 = max($waves_abnormal[$item["mid"]][$item["param"]]);
+                    $data_tables[$item["param"]]["wave"]["base"][] = $w1;
+                    $data_tables[$item["param"]]["wave"]["add"][] = $w2 - $w1;
+                    $data_tables[$item["param"]]["wave_normal"]["base"][] = $w3;
+                    $data_tables[$item["param"]]["wave_normal"]["add"][] = $w4 - $w3;
+                }
+            }
+        }
+
+        if(array_key_exists($k,$data_tables) && array_key_exists($table,$data_tables[$k])){
+            $this->response(array("xdata"=>$data_tables[$k]["xdata"],"ydata"=>$data_tables[$k][$table]));
+        }else{
+            $this->response();
+        }
+    }
+
+    public function param_detail_get(){ //区域详情-环境指标统计详情-tab页数据
+        $param_get = $this->get("param");
+        $texture_data = $rs = array();
+        if($this->env_type == "展厅"){
+            $texture = $this->texture["common"]+$this->texture["zt"];
+        }else{
+            $texture = $this->texture["common"]+$this->texture["zgkf"]+$this->texture["hh"];
+        }
+        $arr_minmax = array();
+        $waves = $waves_abnormal = $waves_status = $waves_abnormal_status = array();
+        if (in_array($this->definite_time,array("week","month"))){ // 算本周or本月日波动，取最小值和最大值
+            switch ($this->definite_time){
+                case "week":
+                    $day_num = date("w");
+                    $date_arr = array();
+                    while ($day_num - 1 > 0){
+                        $date_arr[] = "D".date("Ymd",strtotime("-".($day_num-1)." day"));
+                        $day_num --;
+                    }
+                    if(!empty($date_arr)){
+                        $datas = $this->db->select("mid,wave,wave_status,param")
+                            ->where("env_type",$this->env_type)
+                            ->where_in("date",$date_arr)
+                            ->get("data_envtype_param")
+                            ->result_array();
+
+                    }
+                    break;
+                case "month":
+                    $date = "D".date("Ym")."%";
+                    $datas = $this->db->select("mid,wave,wave_status,param")
+                        ->where("env_type",$this->env_type)
+                        ->where("date like",$date)
+                        ->get("data_envtype_param")
+                        ->result_array();
+            }
+            if(isset($datas) && !empty($datas)){
+                foreach ($datas as $data){
+                    if($data["wave"]){
+                        list($w1,$w2,$w3,$w4) = explode(",",$data["wave"]);
+                        $arr = sprintf("%04d",decbin($data["wave_status"]));
+                        $waves[$data["mid"]][$data["param"]][] = $w1;
+                        $waves[$data["mid"]][$data["param"]][] = $w2;
+                        $waves_abnormal[$data["mid"]][$data["param"]][] = $w3;
+                        $waves_abnormal[$data["mid"]][$data["param"]][] = $w4;
+                        $waves_status[$data["mid"]][$data["param"]][] = $arr[0];
+                        $waves_status[$data["mid"]][$data["param"]][] = $arr[1];
+                        $waves_abnormal_status[$data["mid"]][$data["param"]][] = $arr[2];
+                        $waves_abnormal_status[$data["mid"]][$data["param"]][] = $arr[3];
+                    }
+                }
+            }
+        }
+        $all =  $this->db->select("p.*")
+            ->join("data_envtype_param p","p.mid=m.id")
+            ->where("p.date",$this->date)
+            ->where("p.env_type",$this->env_type)
+            ->get("museum m")
+            ->result_array();
+        foreach ($all as $item) {
+            $arr_minmax[$item["param"]][] = $item["max"];
+            $arr_minmax[$item["param"]][] = $item["min"];
+            $arr = array(
+                "mid"=>$item["mid"],
+                "museum"=>$this->museum[$item["mid"]],
+                "depid"=>$item["id"],
+                "max"=>$item["max"],
+                "min"=>$item["min"],
+                "distance"=>$item["max"] - $item["min"],
+                "middle"=>$item["middle"],
+                "average"=>$item["average"],
+                "count_abnormal"=>$item["count_abnormal"],
+                "standard"=>$item["standard"],
+                "compliance"=>$item["compliance"]*100
+            );
+            $arr["wave"] = $arr["wave_normal"] = array();
+            if($item["wave"]){
+                list($w1,$w2,$w3,$w4) = explode(",",$item["wave"]);
+                if($item["wave_status"] !== null){
+                    $wave_status= sprintf("%04d",decbin($item["wave_status"]));
+                    if(strlen($wave_status) == 4){
+                        $arr["wave"][] = array("data"=>$w1,"status"=>$wave_status[0]);
+                        $arr["wave"][] = array("data"=>$w2,"status"=>$wave_status[1]);
+                        $arr["wave_normal"][] = array("data"=>$w3,"status"=>$wave_status[2]);
+                        $arr["wave_normal"][] = array("data"=>$w4,"status"=>$wave_status[3]);
+                    }
+
+                }
+            }else{
+                if(array_key_exists($item["mid"],$waves) && array_key_exists($item["param"],$waves[$item["mid"]])){
+                    $w1 = min($waves[$item["mid"]][$item["param"]]);
+                    $w2 = max($waves[$item["mid"]][$item["param"]]);
+                    $w3 = min($waves_abnormal[$item["mid"]][$item["param"]]);
+                    $w4 = max($waves_abnormal[$item["mid"]][$item["param"]]);
+                    $arr_wave = array($w1,$w2);
+                    $arr_wave_normal = array($w3,$w4);
+                    foreach ($arr_wave as $wave){
+                        $k = array_search($wave, $waves[$item["mid"]][$item["param"]]);
+                        if(($k || $k == 0) && array_key_exists($k,$waves_status[$item["mid"]][$item["param"]])){
+                            $status = $waves_status[$item["mid"]][$item["param"]][$k];
+                            $arr["wave"][] = array("data"=>$wave,"status"=>$status);
+                        }
+                    }
+                    foreach ($arr_wave_normal as $wave){
+                        $k = array_search($wave, $waves_abnormal[$item["mid"]][$item["param"]]);
+                        if(($k || $k == 0) && array_key_exists($k,$waves_abnormal_status[$item["mid"]][$item["param"]])){
+                            $status = $waves_abnormal_status[$item["mid"]][$item["param"]][$k];
+                            $arr["wave_normal"][] = array("data"=>$wave,"status"=>$status);
+                        }
+                    }
+                }
+            }
+
+            $texture_data[$item["param"]]["list"][] = $arr;
+
+        }
+        foreach ($texture_data as $param=>$value){
+            if(array_key_exists($param, $arr_minmax)){
+                $texture_data[$param]["left"] = min($arr_minmax[$param])*0.9;
+                $texture_data[$param]["right"] = max($arr_minmax[$param])*1.1;
+            }
+        }
+
+        foreach ($texture as $k => $v){
+            foreach ($v as $param => $tt){
+                $data = array_key_exists($k,$texture_data)?$texture_data[$k]:array();
+                $data["unit"] = $this->unit[$param];
+                if(!empty($tt)){
+                    $rs[$param][] = array(
+                        "key"=>$k,
+                        "texture"=>implode("、",$tt),
+                        "data"=>$data
+                    );
+                }else{
+                    $rs[$param] = array("data"=>$data,"key"=>$k);
+                }
+            }
+        }
+        if(array_key_exists($param_get, $rs)){
+            $this->response($rs[$param_get]);
+        }else{
+            $this->response();
+        }
+    }
+
     public function param_details_get(){ //区域详情-环境指标统计详情
         $texture_data = $rs = array();
         if($this->env_type == "展厅"){
@@ -110,6 +355,50 @@ class Area extends MY_Controller{
             $texture = $this->texture["common"]+$this->texture["zgkf"]+$this->texture["hh"];
         }
         $arr_minmax = array();
+        $waves = $waves_abnormal = $waves_status = $waves_abnormal_status = array();
+        if (in_array($this->definite_time,array("week","month"))){ // 算本周or本月日波动，取最小值和最大值
+            switch ($this->definite_time){
+                case "week":
+                    $day_num = date("w");
+                    $date_arr = array();
+                    while ($day_num - 1 > 0){
+                        $date_arr[] = "D".date("Ymd",strtotime("-".($day_num-1)." day"));
+                        $day_num --;
+                    }
+                    if(!empty($date_arr)){
+                        $datas = $this->db->select("mid,wave,wave_status,param")
+                            ->where("env_type",$this->env_type)
+                            ->where_in("date",$date_arr)
+                            ->get("data_envtype_param")
+                            ->result_array();
+
+                    }
+                    break;
+                case "month":
+                    $date = "D".date("Ym")."%";
+                    $datas = $this->db->select("mid,wave,wave_status,param")
+                        ->where("env_type",$this->env_type)
+                        ->where("date like",$date)
+                        ->get("data_envtype_param")
+                        ->result_array();
+            }
+            if(isset($datas) && !empty($datas)){
+                foreach ($datas as $data){
+                    if($data["wave"]){
+                        list($w1,$w2,$w3,$w4) = explode(",",$data["wave"]);
+                        $arr = sprintf("%04d",decbin($data["wave_status"]));
+                        $waves[$data["mid"]][$data["param"]][] = $w1;
+                        $waves[$data["mid"]][$data["param"]][] = $w2;
+                        $waves_abnormal[$data["mid"]][$data["param"]][] = $w3;
+                        $waves_abnormal[$data["mid"]][$data["param"]][] = $w4;
+                        $waves_status[$data["mid"]][$data["param"]][] = $arr[0];
+                        $waves_status[$data["mid"]][$data["param"]][] = $arr[1];
+                        $waves_abnormal_status[$data["mid"]][$data["param"]][] = $arr[2];
+                        $waves_abnormal_status[$data["mid"]][$data["param"]][] = $arr[3];
+                    }
+                }
+            }
+        }
         $all =  $this->db->select("p.*")
             ->join("data_envtype_param p","p.mid=m.id")
             ->where("p.date",$this->date)
@@ -123,6 +412,7 @@ class Area extends MY_Controller{
             $arr = array(
                 "mid"=>$item["mid"],
                 "museum"=>$this->museum[$item["mid"]],
+                "depid"=>$item["id"],
                 "max"=>$item["max"],
                 "min"=>$item["min"],
                 "distance"=>$item["max"] - $item["min"],
@@ -130,7 +420,7 @@ class Area extends MY_Controller{
                 "average"=>$item["average"],
                 "count_abnormal"=>$item["count_abnormal"],
                 "standard"=>$item["standard"],
-                "compliance"=>$item["compliance"]
+                "compliance"=>$item["compliance"]*100
             );
             $data_tables[$item["param"]]["xdata"][] = $arr["museum"];
             $data_tables[$item["param"]]["ydistance"][] = $arr["distance"];
@@ -138,23 +428,56 @@ class Area extends MY_Controller{
             $data_tables[$item["param"]]["ycount_abnormal"][] = $arr["count_abnormal"];
             $data_tables[$item["param"]]["yaverage"][] = $arr["average"];
             $data_tables[$item["param"]]["ystandard"][] = $arr["standard"];
+            $arr["wave"] = $arr["wave_normal"] = array();
             if($item["wave"]){
                 list($w1,$w2,$w3,$w4) = explode(",",$item["wave"]);
                 $data_tables[$item["param"]]["ywave"]["base"][] = $w1;
                 $data_tables[$item["param"]]["ywave"]["add"][] = $w2 - $w1;
                 $data_tables[$item["param"]]["ywave_normal"]["base"][] = $w3;
                 $data_tables[$item["param"]]["ywave_normal"]["add"][] = $w4 - $w3;
-                $arr["wave"] = $w1." - ".$w2;
-                $arr["wave_normal"] = $w3." - ".$w4;
                 if($item["wave_status"] !== null){
-                    $arr["wave_status"] = sprintf("%04d",decbin($item["wave_status"]));
+                    $wave_status= sprintf("%04d",decbin($item["wave_status"]));
+                    if(strlen($wave_status) == 4){
+                        $arr["wave"][] = array("data"=>$w1,"status"=>$wave_status[0]);
+                        $arr["wave"][] = array("data"=>$w2,"status"=>$wave_status[1]);
+                        $arr["wave_normal"][] = array("data"=>$w3,"status"=>$wave_status[2]);
+                        $arr["wave_normal"][] = array("data"=>$w4,"status"=>$wave_status[3]);
+                    }
+
+                }
+            }else{
+                if(array_key_exists($item["mid"],$waves) && array_key_exists($item["param"],$waves[$item["mid"]])){
+                    $w1 = min($waves[$item["mid"]][$item["param"]]);
+                    $w2 = max($waves[$item["mid"]][$item["param"]]);
+                    $w3 = min($waves_abnormal[$item["mid"]][$item["param"]]);
+                    $w4 = max($waves_abnormal[$item["mid"]][$item["param"]]);
+                    $data_tables[$item["param"]]["ywave"]["base"][] = $w1;
+                    $data_tables[$item["param"]]["ywave"]["add"][] = $w2 - $w1;
+                    $data_tables[$item["param"]]["ywave_normal"]["base"][] = $w3;
+                    $data_tables[$item["param"]]["ywave_normal"]["add"][] = $w4 - $w3;
+                    $arr_wave = array($w1,$w2);
+                    $arr_wave_normal = array($w3,$w4);
+                    foreach ($arr_wave as $wave){
+                        $k = array_search($wave, $waves[$item["mid"]][$item["param"]]);
+                            if(($k || $k == 0) && array_key_exists($k,$waves_status[$item["mid"]][$item["param"]])){
+                                $status = $waves_status[$item["mid"]][$item["param"]][$k];
+                                $arr["wave"][] = array("data"=>$wave,"status"=>$status);
+                            }
+                    }
+                    foreach ($arr_wave_normal as $wave){
+                        $k = array_search($wave, $waves_abnormal[$item["mid"]][$item["param"]]);
+                            if(($k || $k == 0) && array_key_exists($k,$waves_abnormal_status[$item["mid"]][$item["param"]])){
+                                $status = $waves_abnormal_status[$item["mid"]][$item["param"]][$k];
+                                $arr["wave_normal"][] = array("data"=>$wave,"status"=>$status);
+                            }
+                    }
+                    //$arr["wave_status"] = $status;
                 }
             }
 
             $texture_data[$item["param"]]["list"][] = $arr;
 
         }
-
         foreach ($texture_data as $param=>$value){
             if(array_key_exists($param, $arr_minmax)){
                 $texture_data[$param]["left"] = min($arr_minmax[$param])*0.9;
@@ -183,24 +506,285 @@ class Area extends MY_Controller{
         $this->response($rs);
     }
 
-    public function analysis_get(){
+    public function abnormal_get(){ //异常值获取
+        $depid = $this->get("depid");
+        $abnormal = array();
+        if($depid){
+            $abnormal = $this->db->select("date,time,equip_no,val")
+                     ->where("depid",$depid)
+                     ->get("data_abnormal")
+                     ->result_array();
+        }
+        $this->response($abnormal);
+    }
+
+    public function wave_abnormal_get(){ //日波动异常获取
+        $depid = $this->get("depid");
+        $type = $this->get("type");
+        $abnormal = array();
+        if($depid && ($type || $type == 0)){
+            $abnormal = $this->db->select("date,env_name,val")
+                ->where("depid",$depid)
+                ->where("type",$type)
+                ->get("data_wave_abnormal")
+                ->result_array();
+            if(!$abnormal){
+                $envtype = $this->db->select("date,mid,env_type,param")
+                    ->where("id",$depid)
+                    ->get("data_envtype_param")
+                    ->row_array();
+                if($envtype && $envtype["date"]){
+                    $ids = $ids_arr = array();
+                    if($envtype["date"][0] == "W"){
+                        $day_num = date("w");
+                        $date_arr = array();
+                        while ($day_num - 1 > 0){
+                            $date_arr[] = "D".date("Ymd",strtotime("-".($day_num-1)." day"));
+                            $day_num --;
+                        }
+                        if(!empty($date_arr)){
+                            $ids = $this->db->select("id")
+                                ->where("mid",$envtype["mid"])
+                                ->where("env_type",$envtype["env_type"])
+                                ->where("param",$envtype["param"])
+                                ->where_in("date",$date_arr)
+                                ->get("data_envtype_param")
+                                ->result_array();
+                        }
+                    }elseif ($envtype["date"][0] == "M"){
+                        $date = "D".date("Ym")."%";
+                        $ids = $this->db->select("id")
+                            ->where("mid",$envtype["mid"])
+                            ->where("env_type",$envtype["env_type"])
+                            ->where("param",$envtype["param"])
+                            ->where("date like",$date)
+                            ->get("data_envtype_param")
+                            ->result_array();
+                    }
+
+                    if($ids){
+                        foreach ($ids as $id){
+                            $ids_arr[] = $id["id"];
+                        }
+                        $abnormal = $this->db->select("date,env_name,val")
+                            ->where_in("depid",$ids_arr)
+                            ->where("type",$type)
+                            ->get("data_wave_abnormal")
+                            ->result_array();
+                    }
+                }
+            }
+        }
+        $this->response($abnormal);
+    }
+
+//    public function analysis_get(){
+//        $mids = $this->get("mids");
+//        if(!$mids){
+//            $this->response();
+//        }
+//        $x_standard = array("99.5%(含)~100%","99%(含)~99.5%","95%(含)~99%","<95%");
+//        $x_temperature = array("0%~4%(含)","4%~6%(含)","6%~7%(含)",">7.5%");
+//        $x_humidity = array("0%~2%(含)","2%~3%(含)","3%~3.5%(含)",">4%");
+//        $museum_standard = $museum_temperature = $museum_humidity = $counts_arr = $counts_rs = $legend = array();
+//        $mid_arr = explode(",",$mids);
+//        $counts = $this->db->select("mid,count_showcase")->get("data_base")->result_array();
+//        foreach ($counts as $count){
+//            $counts_arr[$count["mid"]] = $count["count_showcase"];
+//        }
+//        $data_standard = $this->detail_standard();
+//        $data_scatter = $this->data_scatter();
+//        $temperature = $data_scatter["scatter_temperature"];
+//        $humidity = $data_scatter["scatter_humidity"];
+//        foreach ($mid_arr as $mid){
+//            if(array_key_exists($mid, $data_standard)){
+//                $data = array();//达标率柱状图数据
+//                if($data_standard[$mid] >= 0.995 && $data_standard[$mid]<= 1){
+//                    $data[] = $data_standard[$mid];
+//                }else{
+//                    $data[] = 0;
+//                }
+//                if($data_standard[$mid] >= 0.99 && $data_standard[$mid]< 0.995){
+//                    $data[] = $data_standard[$mid];
+//                }else{
+//                    $data[] = 0;
+//                }
+//                if($data_standard[$mid] >= 0.95 && $data_standard[$mid]< 0.99){
+//                    $data[] = $data_standard[$mid];
+//                }else{
+//                    $data[] = 0;
+//                }
+//                if($data_standard[$mid]< 0.95){
+//                    $data[] = $data_standard[$mid];
+//                }else{
+//                    $data[] = 0;
+//                }
+//                $museum_standard[] = array("name"=>$this->museum[$mid],"data"=>$data);
+//            }
+//
+//            if(array_key_exists($mid,$temperature)){
+//                $data = array();//温度离散系数 柱状图数据
+//                if($temperature[$mid] > 0 && $temperature[$mid]<= 0.04){
+//                    $data[] = $temperature[$mid];
+//                }else{
+//                    $data[] = 0;
+//                }
+//                if($temperature[$mid] >0.04 && $temperature[$mid]<= 0.06){
+//                    $data[] = $temperature[$mid];
+//                }else{
+//                    $data[] = 0;
+//                }
+//                if($temperature[$mid] >0.06 && $temperature[$mid]<= 0.07){
+//                    $data[] = $temperature[$mid];
+//                }else{
+//                    $data[] = 0;
+//                }
+//                if($temperature[$mid]> 0.075){
+//                    $data[] = $temperature[$mid];
+//                }else{
+//                    $data[] = 0;
+//                }
+//                $museum_temperature[] = array("name"=>$this->museum[$mid],"data"=>$data);
+//            }
+//
+//            if(array_key_exists($mid,$humidity)){
+//                $data = array();//湿度离散系数 柱状图数据
+//                if($humidity[$mid] > 0 && $humidity[$mid]<= 0.02){
+//                    $data[] = $humidity[$mid];
+//                }else{
+//                    $data[] = 0;
+//                }
+//                if($humidity[$mid] >0.02 && $humidity[$mid]<= 0.03){
+//                    $data[] = $humidity[$mid];
+//                }else{
+//                    $data[] = 0;
+//                }
+//                if($humidity[$mid] >0.03 && $humidity[$mid]<= 0.035){
+//                    $data[] = $humidity[$mid];
+//                }else{
+//                    $data[] = 0;
+//                }
+//                if($humidity[$mid]> 0.04){
+//                    $data[] = $humidity[$mid];
+//                }else{
+//                    $data[] = 0;
+//                }
+//                $museum_humidity[] = array("name"=>$this->museum[$mid],"data"=>$data);
+//            }
+//
+//            if(array_key_exists($mid, $counts_arr)){
+//                $counts_rs[] = array("name"=>$this->museum[$mid],"count"=>$counts_arr[$mid]);//展柜数量
+//            }
+//
+//            if(array_key_exists($mid, $this->museum)){
+//                $legend[] = $this->museum[$mid];
+//            }
+//        }
+//        $indicator_compliance = array(
+//            array("name"=>"全参数平均达标率","max"=>1),
+//            array("name"=>"温度","max"=>1),
+//            array("name"=>"湿度","max"=>1),
+//            array("name"=>"光照","max"=>1),
+//            array("name"=>"紫外","max"=>1),
+//            array("name"=>"有机挥发物","max"=>1)
+//        );
+//        $indicator_scatter = array(
+//            array("name"=>"全参数平均离散系数","max"=>0.15),
+//            array("name"=>"温度","max"=>0.15),
+//            array("name"=>"湿度","max"=>0.15),
+//            array("name"=>"光照","max"=>0.15),
+//            array("name"=>"紫外","max"=>0.15),
+//            array("name"=>"有机挥发物","max"=>0.15)
+//        );
+//        $datas = $this->depart_table($mid_arr);
+//        $rs = array(
+//            "compliance"=>array("xdata"=>$x_standard,"legend"=>$legend,"data"=>$museum_standard),
+//            "temperature"=>array("xdata"=>$x_temperature,"legend"=>$legend,"data"=>$museum_temperature),
+//            "humidity"=>array("xdata"=>$x_humidity,"legend"=>$legend,"data"=>$museum_humidity),
+//            "counts"=>$counts_rs,
+//            "all_compliance"=>array("legend"=>$legend,"indicator"=>$indicator_compliance,"data"=>$datas["compliance"]),
+//            "all_scatter"=>array("legend"=>$legend,"indicator"=>$indicator_scatter,"data"=>$datas["scatter"])
+//        );
+//        $this->response($rs);
+//
+//    }
+
+    public function all_compliance_get(){ //达标率 雷达图
         $mids = $this->get("mids");
         if(!$mids){
             $this->response();
         }
-        $x_standard = array("99.5%(含)~100%","99%(含)~99.5%","95%(含)~99%","<95%");
-        $x_temperature = array("0%~4%(含)","4%~6%(含)","6%~7%(含)",">7.5%");
-        $x_humidity = array("0%~2%(含)","2%~3%(含)","3%~3.5%(含)",">4%");
-        $museum_standard = $museum_temperature = $museum_humidity = $counts_arr = $counts_rs = $legend = array();
+        $mid_arr = explode(",",$mids);
+        $legend = array();
+        $indicator_compliance = array(
+            array("name"=>"全参数平均达标率","max"=>1),
+            array("name"=>"温度","max"=>1),
+            array("name"=>"湿度","max"=>1),
+            array("name"=>"光照","max"=>1),
+            array("name"=>"紫外","max"=>1),
+            array("name"=>"有机挥发物","max"=>1)
+        );
+        $datas = $this->depart_table($mid_arr);
+        foreach ($mid_arr as $mid){
+            if(array_key_exists($mid, $this->museum)){
+                $legend[] = $this->museum[$mid];
+            }
+        }
+        $this->response(array("legend"=>$legend,"indicator"=>$indicator_compliance,"data"=>$datas["compliance"]));
+    }
+
+    public function all_scatter_get(){ //离散系数 雷达图
+        $mids = $this->get("mids");
+        if(!$mids){
+            $this->response();
+        }
+        $mid_arr = explode(",",$mids);
+        $legend = array();
+        $indicator_scatter = array(
+            array("name"=>"全参数平均离散系数","max"=>0.15),
+            array("name"=>"温度","max"=>0.15),
+            array("name"=>"湿度","max"=>0.15),
+            array("name"=>"光照","max"=>0.15),
+            array("name"=>"紫外","max"=>0.15),
+            array("name"=>"有机挥发物","max"=>0.15)
+        );
+        $datas = $this->depart_table($mid_arr);
+        foreach ($mid_arr as $mid){
+            if(array_key_exists($mid, $this->museum)){
+                $legend[] = $this->museum[$mid];
+            }
+        }
+        $this->response(array("legend"=>$legend,"indicator"=>$indicator_scatter,"data"=>$datas["scatter"]));
+    }
+
+    public function analysis_counts_get(){ //展柜数量获取
+        $mids = $this->get("mids");
+        if(!$mids){
+            $this->response();
+        }
+        $counts_arr = $counts_rs = array();
         $mid_arr = explode(",",$mids);
         $counts = $this->db->select("mid,count_showcase")->get("data_base")->result_array();
         foreach ($counts as $count){
             $counts_arr[$count["mid"]] = $count["count_showcase"];
         }
-        $data_standard = $this->detail_standard_get();
-        $data_scatter = $this->data_scatter_get();
-        $temperature = $data_scatter["scatter_temperature"];
-        $humidity = $data_scatter["scatter_humidity"];
+        foreach ($mid_arr as $mid){
+            if(array_key_exists($mid, $counts_arr)){
+                $counts_rs[] = array("name"=>$this->museum[$mid],"count"=>$counts_arr[$mid]);//展柜数量
+            }
+        }
+        $this->response($counts_rs);
+    }
+
+    public function analysis_compliance_get(){ //达标率统计概况
+        $mids = $this->get("mids");
+        if(!$mids){
+            $this->response();
+        }
+        $museum_standard = $legend = array();
+        $mid_arr = explode(",",$mids);
+        $x_standard = array("99.5%(含)~100%","99%(含)~99.5%","95%(含)~99%","<95%");
+        $data_standard = $this->detail_standard();
         foreach ($mid_arr as $mid){
             if(array_key_exists($mid, $data_standard)){
                 $data = array();//达标率柱状图数据
@@ -227,6 +811,24 @@ class Area extends MY_Controller{
                 $museum_standard[] = array("name"=>$this->museum[$mid],"data"=>$data);
             }
 
+            if(array_key_exists($mid, $this->museum)){
+                $legend[] = $this->museum[$mid];
+            }
+        }
+        $this->response(array("xdata"=>$x_standard,"legend"=>$legend,"data"=>$museum_standard));
+    }
+
+    public function analysis_temperature_get(){ //稳定性统计概况-温度
+        $mids = $this->get("mids");
+        if(!$mids){
+            $this->response();
+        }
+        $museum_temperature = $legend = array();
+        $mid_arr = explode(",",$mids);
+        $x_temperature = array("0%~4%(含)","4%~6%(含)","6%~7%(含)",">7.5%");
+        $data_scatter = $this->data_scatter();
+        $temperature = $data_scatter["scatter_temperature"];
+        foreach ($mid_arr as $mid){
             if(array_key_exists($mid,$temperature)){
                 $data = array();//温度离散系数 柱状图数据
                 if($temperature[$mid] > 0 && $temperature[$mid]<= 0.04){
@@ -252,6 +854,24 @@ class Area extends MY_Controller{
                 $museum_temperature[] = array("name"=>$this->museum[$mid],"data"=>$data);
             }
 
+            if(array_key_exists($mid, $this->museum)){
+                $legend[] = $this->museum[$mid];
+            }
+        }
+        $this->response(array("xdata"=>$x_temperature,"legend"=>$legend,"data"=>$museum_temperature));
+    }
+
+    public function analysis_humidity_get(){ //稳定性统计概况-湿度
+        $mids = $this->get("mids");
+        if(!$mids){
+            $this->response();
+        }
+        $museum_humidity = $legend = array();
+        $mid_arr = explode(",",$mids);
+        $x_humidity = array("0%~2%(含)","2%~3%(含)","3%~3.5%(含)",">4%");
+        $data_scatter = $this->data_scatter();
+        $humidity = $data_scatter["scatter_humidity"];
+        foreach ($mid_arr as $mid){
             if(array_key_exists($mid,$humidity)){
                 $data = array();//湿度离散系数 柱状图数据
                 if($humidity[$mid] > 0 && $humidity[$mid]<= 0.02){
@@ -277,41 +897,11 @@ class Area extends MY_Controller{
                 $museum_humidity[] = array("name"=>$this->museum[$mid],"data"=>$data);
             }
 
-            if(array_key_exists($mid, $counts_arr)){
-                $counts_rs[] = array("name"=>$this->museum[$mid],"count"=>$counts_arr[$mid]);//展柜数量
-            }
-
             if(array_key_exists($mid, $this->museum)){
                 $legend[] = $this->museum[$mid];
             }
         }
-        $indicator_compliance = array(
-            array("name"=>"全参数平均达标率","max"=>1),
-            array("name"=>"温度","max"=>1),
-            array("name"=>"湿度","max"=>1),
-            array("name"=>"光照","max"=>1),
-            array("name"=>"紫外","max"=>1),
-            array("name"=>"有机挥发物","max"=>1)
-        );
-        $indicator_scatter = array(
-            array("name"=>"全参数平均离散系数","max"=>0.15),
-            array("name"=>"温度","max"=>0.15),
-            array("name"=>"湿度","max"=>0.15),
-            array("name"=>"光照","max"=>0.15),
-            array("name"=>"紫外","max"=>0.15),
-            array("name"=>"有机挥发物","max"=>0.15)
-        );
-        $datas = $this->depart_table($mid_arr);
-        $rs = array(
-            "compliance"=>array("xdata"=>$x_standard,"legend"=>$legend,"data"=>$museum_standard),
-            "temperature"=>array("xdata"=>$x_temperature,"legend"=>$legend,"data"=>$museum_temperature),
-            "humidity"=>array("xdata"=>$x_humidity,"legend"=>$legend,"data"=>$museum_humidity),
-            "counts"=>$counts_rs,
-            "all_compliance"=>array("legend"=>$legend,"indicator"=>$indicator_compliance,"data"=>$datas["compliance"]),
-            "all_scatter"=>array("legend"=>$legend,"indicator"=>$indicator_scatter,"data"=>$datas["scatter"])
-        );
-        $this->response($rs);
-
+        $this->response(array("xdata"=>$x_humidity,"legend"=>$legend,"data"=>$museum_humidity));
     }
 
     private function depart_table($mid_arr = array()){
