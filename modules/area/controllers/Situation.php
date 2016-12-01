@@ -106,7 +106,7 @@ class Situation extends MY_Controller{
                 "value"=>0,
                 "name"=>$v['name']);
         }
-
+        return $sp_data;die;
         $this->response($sp_data);
     }
 
@@ -184,6 +184,17 @@ class Situation extends MY_Controller{
     public function pie_scatter_humidity_get(){
         $data = $this->pie_stability();
         $this->response($data['humidity']);
+    }
+    //临时调用
+    public function pie(){
+        $data['compliance'] = $this->pie_compliance_get();
+        $data1 = $this->pie_stability();
+        $data['temperature_scatter'] = $data1['temperature'];
+        $data['humidity_scatter'] = $data1['humidity'];
+        //var_dump($data);
+        $this->response($data);
+
+
     }
 
 
