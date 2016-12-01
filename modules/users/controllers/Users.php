@@ -7,6 +7,10 @@ class Users extends MY_Controller{
         parent::__construct();
     }
     
+
+    /**
+    * 添加用户行为
+    */
     function behavior_post()
     {
         $webkey = $this->post('webkey');
@@ -22,6 +26,23 @@ class Users extends MY_Controller{
 	        $ret = $this->db->insert("user_behavior", $data);
         }
         $this->response($ret?1:0);
+    }
+
+
+    /**
+    * 获取用户行为
+    */
+    public function behavior_get(){
+        $webkey = $this->get('webkey');
+
+        $this->load->model('user_model');
+        $behavior = $this->user_model->get_behavior($this->_user['id'], $webkey);
+
+        if($webkey){
+            $behavior = isset($behavior[$webkey]) ? $behavior[$webkey] : '';
+        }
+
+        $this->response($behavior);
     }
     
 }
