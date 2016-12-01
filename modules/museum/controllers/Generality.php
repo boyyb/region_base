@@ -79,6 +79,7 @@ class Generality extends REST_Controller{
                 }
                 $datas[] = $data;
                 $result[] = array(
+                    "mid"=>$value["mid"],
                     "legend"=>$legend,
                     "data"=>$datas
                 );
