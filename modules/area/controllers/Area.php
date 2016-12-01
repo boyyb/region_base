@@ -320,8 +320,8 @@ class Area extends MY_Controller{
         }
         foreach ($texture_data as $param=>$value){
             if(array_key_exists($param, $arr_minmax)){
-                $texture_data[$param]["left"] = min($arr_minmax[$param])*0.9;
-                $texture_data[$param]["right"] = max($arr_minmax[$param])*1.1;
+                $texture_data[$param]["left"] = min($arr_minmax[$param]);//*0.9;
+                $texture_data[$param]["right"] = max($arr_minmax[$param]);//*1.1;
             }
         }
 
@@ -480,8 +480,8 @@ class Area extends MY_Controller{
         }
         foreach ($texture_data as $param=>$value){
             if(array_key_exists($param, $arr_minmax)){
-                $texture_data[$param]["left"] = min($arr_minmax[$param])*0.9;
-                $texture_data[$param]["right"] = max($arr_minmax[$param])*1.1;
+                $texture_data[$param]["left"] = min($arr_minmax[$param]);//*0.9;
+                $texture_data[$param]["right"] = max($arr_minmax[$param]);//*1.1;
             }
         }
 
