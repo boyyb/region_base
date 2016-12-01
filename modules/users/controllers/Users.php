@@ -20,9 +20,9 @@ class Users extends MY_Controller{
         	'webkey' => $webkey
         );
         if($this->db->where($data)->count_all_results('user_behavior')){
-        	$ret = $this->db->where($data)->update('user_behavior', array('behavior'=>json_encode($behavior)));
+        	$ret = $this->db->where($data)->update('user_behavior', array('behavior'=>$behavior));
         }else{
-        	$data['behavior'] = json_encode($behavior);
+        	$data['behavior'] = $behavior;
 	        $ret = $this->db->insert("user_behavior", $data);
         }
         $this->response($ret?1:0);
