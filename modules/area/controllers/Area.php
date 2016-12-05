@@ -717,12 +717,12 @@ class Area extends MY_Controller{
         $mid_arr = explode(",",$mids);
         $legend = array();
         $indicator_compliance = array(
-            array("name"=>"全参数平均达标率","max"=>1),
-            array("name"=>"温度","max"=>1),
-            array("name"=>"湿度","max"=>1),
-            array("name"=>"光照","max"=>1),
-            array("name"=>"紫外","max"=>1),
-            array("name"=>"有机挥发物","max"=>1)
+            array("name"=>"全参数平均达标率","max"=>100),
+            array("name"=>"温度","max"=>100),
+            array("name"=>"湿度","max"=>100),
+            array("name"=>"光照","max"=>100),
+            array("name"=>"紫外","max"=>100),
+            array("name"=>"有机挥发物","max"=>100)
         );
         $datas = $this->depart_table($mid_arr);
         foreach ($mid_arr as $mid){
