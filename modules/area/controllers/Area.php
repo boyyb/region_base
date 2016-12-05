@@ -905,7 +905,10 @@ class Area extends MY_Controller{
     }
 
     private function depart_table($mid_arr = array()){
-        $data = array();
+        $data = array(
+            "compliance"=>array(),
+            "scatter"=>array()
+        );
         $data_complex = $this->db->select("c.*")
             ->join("data_complex c","c.mid=m.id")
             ->where("c.env_type",$this->env_type)
