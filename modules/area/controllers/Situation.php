@@ -60,7 +60,7 @@ class Situation extends MY_Controller{
     }
 
     //环形图-达标率
-    protected function pie_compliance(){
+    public function pie_compliance_get(){
         $env = $this->env_type;
         $param = $this->env_param;
 
@@ -82,8 +82,8 @@ class Situation extends MY_Controller{
             ->where("env_type",$env)
             ->get("data_complex")
             ->result_array();
-        if(!$dc_datas) return array();
-        $data = array_column($dc_datas,"standard_percent");
+        if(!$dc_datas) $this->response(array()); //数据库无对应日期数据
+        $data = array_column($dc_datas,"standard_percent");//各博物馆达标率
 
         //达标率区间参数
         $sp = array(
@@ -96,7 +96,7 @@ class Situation extends MY_Controller{
         //构建返回数据
         foreach($sp as $k=>$v){
             foreach($data as $v1){
-                if(!$v1) continue; // 排除null值 不计入统计数量
+                if(!$v1) continue; // 排除null值 不计入统计
                 if($v1<$v['max'] && $v1>=$v['min']) $data1[$k][] = $v1;
             }
             if(isset($data1[$k])) $sp_data[] = array(
@@ -106,11 +106,13 @@ class Situation extends MY_Controller{
                 "value"=>0,
                 "name"=>$v['name']);
         }
-        return $sp_data;
+        return $sp_data;die;
+        $this->response($sp_data);
     }
 
     //环形图-稳定性(温度湿度)
     protected function pie_stability(){
+        $scatter = array();
         $env = $this->env_type;
         $ts = array( //温度
             1=>array("name"=>"0~4%(含)","min"=>0,"max"=>0.04),
@@ -132,7 +134,11 @@ class Situation extends MY_Controller{
             ->order_by("mid asc")
             ->get("data_complex")
             ->result_array();
-        if(!$dc_datas) return array("temperature_scatter"=>array(),"humidity_scatter"=>array());
+        if(!$dc_datas) {
+            $scatter['temperature'] = array();
+            $scatter['humidity'] = array();
+            return $scatter;
+        }
         //温湿度各博物馆的离散数据
         foreach($dc_datas as $v){
             $data["temperature_scatter"][] = $v["scatter_temperature"];
@@ -165,24 +171,35 @@ class Situation extends MY_Controller{
                 "value"=>0,
                 "name"=>$v['name']);
         }
-        $ret['temperature_scatter'] = $ts_data;
-        $ret['humidity_scatter'] = $hs_data;
-
-        return $ret;
+        $scatter['temperature'] = $ts_data;
+        $scatter['humidity'] = $hs_data;
+        return $scatter;
     }
 
+    public function pie_scatter_temperature_get(){
+        $data = $this->pie_stability();
+        $this->response($data['temperature']);
+    }
 
-    //饼图数据
+    public function pie_scatter_humidity_get(){
+        $data = $this->pie_stability();
+        $this->response($data['humidity']);
+    }
+    //临时调用
     public function pie(){
-        $data = array();
-        $data['compliance'] = $this->pie_compliance();
-        $data = array_merge($data,$this->pie_stability());
-
+        $data['compliance'] = $this->pie_compliance_get();
+        $data1 = $this->pie_stability();
+        $data['temperature_scatter'] = $data1['temperature'];
+        $data['humidity_scatter'] = $data1['humidity'];
+        //var_dump($data);
         $this->response($data);
+
+
     }
+
 
     //地图
-    public function map(){
+    public function map_get(){
         $mid = $this->get("mids");//接收对比分析的博物馆id 格式mid=2,3,4
         $env = $this->env_type;
         $param = $this->env_param;
@@ -215,9 +232,11 @@ class Situation extends MY_Controller{
             ->order_by("mid")
             ->get("data_complex")
             ->result_array();
-        if(!$dc_datas) die($this->response(array("map_name"=>app_config("map_name"),"data"=>array())));
-        foreach($dc_datas as $v){
-            $datas[$v['mid']] = $v;
+        $datas = array();
+        if($dc_datas){
+            foreach($dc_datas as $v){
+                $datas[$v['mid']] = $v;
+            }
         }
 
         //统计各博物馆日波动(温度/湿度)超标情况 不剔除异常值
@@ -289,15 +308,10 @@ class Situation extends MY_Controller{
     }
 
     //统计博物馆数量统计
-    public function statistic(){
+    public function statistic_get(){
         $data = array();
         $data["total"] = $this->db->count_all_results("museum");
         $data['show'] = $data['total'];
-        /*$data['show'] = $this->db
-            ->select("distinct(mid)")
-            ->where("date",$this->date)
-            ->where("env_type",$this->env_type)
-            ->count_all_results("data_complex");*/
 
         $this->response($data);
     }

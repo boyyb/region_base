@@ -82,7 +82,7 @@ class Details extends MY_Controller{
             $value_abnormal = array();
             if($v['count_abnormal']){ //存在异常值
                 $value_abnormal = $this->db
-                    ->select("CONCAT(`date`,\" \",`time`) as date,equip_no,val")
+                    ->select("id,CONCAT(`date`,\" \",`time`) as date,equip_no,val")
                     ->where("depid",$v['id'])
                     ->get("data_abnormal")
                     ->result_array();
@@ -108,7 +108,7 @@ class Details extends MY_Controller{
                     if($dep_data[0]['wave_status']>0){ //存在日波动异常
                         foreach(array(0,1) as $type){
                             $dwa_datas = $this->db
-                                ->select("val,env_name,date")
+                                ->select("id,val,env_name,date")
                                 ->where("depid",$dep_data[0]['id'])
                                 ->where("type",$type)
                                 ->get("data_wave_abnormal")
@@ -126,7 +126,8 @@ class Details extends MY_Controller{
             $wave_max2 = isset($wave_arr['max2'])?max($wave_arr['max2']):null;
 
             $data[] = array(
-                "mid"=>$mid,
+                "id"=>$v['id'],
+                "mid"=>(string)$mid,
                 "name"=>$this->museum[$mid],
                 "min"=>$v['min'],
                 "max"=>$v["max"],
@@ -145,12 +146,11 @@ class Details extends MY_Controller{
                 "wave_abnormal2"=>$wave_abnormal2
             );
         }
-
         return $data;
     }
 
     //数据调用
-    public function data(){
+    public function data_get(){
         foreach($this->env_param as $param){
             $ret[$param]['unit'] = $this->unit[$param]; //环境参数单位
             if($param == "temperature"){
@@ -172,7 +172,7 @@ class Details extends MY_Controller{
                     "texture"=>"纸质、壁画、纺织品、漆木器、其他",
                     "list"=>$this->_data(3)
                 );
-                $ret['humidity'][] = array(
+                $ret['humidity']['data'][] = array(
                     "texture"=>"混合材质",
                     "data"=>$this->_data(12)
                 );
