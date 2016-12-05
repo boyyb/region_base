@@ -741,12 +741,12 @@ class Area extends MY_Controller{
         $mid_arr = explode(",",$mids);
         $legend = array();
         $indicator_scatter = array(
-            array("name"=>"全参数平均离散系数","max"=>0.15),
-            array("name"=>"温度","max"=>0.15),
-            array("name"=>"湿度","max"=>0.15),
-            array("name"=>"光照","max"=>0.15),
-            array("name"=>"紫外","max"=>0.15),
-            array("name"=>"有机挥发物","max"=>0.15)
+            array("name"=>"全参数平均离散系数","max"=>15),
+            array("name"=>"温度","max"=>15),
+            array("name"=>"湿度","max"=>15),
+            array("name"=>"光照","max"=>15),
+            array("name"=>"紫外","max"=>15),
+            array("name"=>"有机挥发物","max"=>15)
         );
         $datas = $this->depart_table($mid_arr);
         foreach ($mid_arr as $mid){
@@ -934,8 +934,8 @@ class Area extends MY_Controller{
                     $average_scatter = round(array_sum($scatter)/sizeof($scatter),2);
                     array_unshift($standard,$average_standard);
                     array_unshift($scatter,$average_scatter);
-                    $data["compliance"][] = array("name"=>$this->museum[$mid],"value"=>$standard);
-                    $data["scatter"][] = array("name"=>$this->museum[$mid],"value"=>$scatter);
+                    $data["compliance"][] = array("name"=>$this->museum[$mid],"value"=>$standard*100);
+                    $data["scatter"][] = array("name"=>$this->museum[$mid],"value"=>$scatter*100);
                     break;
                 }
             }
