@@ -789,22 +789,22 @@ class Area extends MY_Controller{
             if(array_key_exists($mid, $data_standard)){
                 $data = array();//达标率柱状图数据
                 if($data_standard[$mid] >= 0.995 && $data_standard[$mid]<= 1){
-                    $data[] = $data_standard[$mid];
+                    $data[] = $data_standard[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
                 if($data_standard[$mid] >= 0.99 && $data_standard[$mid]< 0.995){
-                    $data[] = $data_standard[$mid];
+                    $data[] = $data_standard[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
                 if($data_standard[$mid] >= 0.95 && $data_standard[$mid]< 0.99){
-                    $data[] = $data_standard[$mid];
+                    $data[] = $data_standard[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
                 if($data_standard[$mid]< 0.95){
-                    $data[] = $data_standard[$mid];
+                    $data[] = $data_standard[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
@@ -832,22 +832,22 @@ class Area extends MY_Controller{
             if(array_key_exists($mid,$temperature)){
                 $data = array();//温度离散系数 柱状图数据
                 if($temperature[$mid] > 0 && $temperature[$mid]<= 0.04){
-                    $data[] = $temperature[$mid];
+                    $data[] = $temperature[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
                 if($temperature[$mid] >0.04 && $temperature[$mid]<= 0.06){
-                    $data[] = $temperature[$mid];
+                    $data[] = $temperature[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
                 if($temperature[$mid] >0.06 && $temperature[$mid]<= 0.07){
-                    $data[] = $temperature[$mid];
+                    $data[] = $temperature[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
                 if($temperature[$mid]> 0.075){
-                    $data[] = $temperature[$mid];
+                    $data[] = $temperature[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
@@ -875,22 +875,22 @@ class Area extends MY_Controller{
             if(array_key_exists($mid,$humidity)){
                 $data = array();//湿度离散系数 柱状图数据
                 if($humidity[$mid] > 0 && $humidity[$mid]<= 0.02){
-                    $data[] = $humidity[$mid];
+                    $data[] = $humidity[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
                 if($humidity[$mid] >0.02 && $humidity[$mid]<= 0.03){
-                    $data[] = $humidity[$mid];
+                    $data[] = $humidity[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
                 if($humidity[$mid] >0.03 && $humidity[$mid]<= 0.035){
-                    $data[] = $humidity[$mid];
+                    $data[] = $humidity[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
                 if($humidity[$mid]> 0.04){
-                    $data[] = $humidity[$mid];
+                    $data[] = $humidity[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
