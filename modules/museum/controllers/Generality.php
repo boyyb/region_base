@@ -33,8 +33,8 @@ class Generality extends REST_Controller{
         $abnormal_all_small = $total_all_small = $abnormal_all_micro = $total_all_micro = 0;
         $compliance = array();
         $base = $b->fetAll();
-        //$complex = $c->fetAll(array("date"=>"D".date("Ymd",strtotime("-1 day"))));
-        $complex = $c->fetAll(array("date"=>"D20161024"));
+        $complex = $c->fetAll(array("date"=>"D".date("Ymd",strtotime("-1 day"))));
+        //$complex = $c->fetAll(array("date"=>"D20161024"));
         foreach ($complex as $value){
             if($value["mid"]){
                 if($value["env_type"] == "展厅"){//小环境
