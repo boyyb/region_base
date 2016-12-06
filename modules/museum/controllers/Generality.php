@@ -78,12 +78,21 @@ class Generality extends REST_Controller{
                         $abnormal_micro = array_key_exists("abnormal",$compliance[$value["mid"]]["micro"])?array_sum($compliance[$value["mid"]]["micro"]["abnormal"]):0;
                         $total_micro = array_key_exists("total",$compliance[$value["mid"]]["micro"])?array_sum($compliance[$value["mid"]]["micro"]["total"]):0;
                         $data["value"][] = $micro_compliance[] = $total_micro ? round(($total_micro - $abnormal_micro) / $total_micro, 2) : 0;
+                    }else{
+                        $data["value"][] = 0;
                     }
+
+
                     if(array_key_exists("small",$compliance[$value["mid"]])) {
                         $abnormal = array_key_exists("abnormal",$compliance[$value["mid"]]["small"])?array_sum($compliance[$value["mid"]]["small"]["abnormal"]):0;
                         $total = array_key_exists("total",$compliance[$value["mid"]]["small"])?array_sum($compliance[$value["mid"]]["small"]["total"]):0;
                         $data["value"][] = $small_compliance[] = $total ? round(($total - $abnormal) / $total, 2) : 0;
+                    }else{
+                        $data["value"][] = 0;
                     }
+                }else{
+                    $data["value"][] = 0;
+                    $data["value"][] = 0;
                 }
                 $datas[] = $data;
                 $result[] = array(
