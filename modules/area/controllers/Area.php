@@ -72,6 +72,25 @@ class Area extends MY_Controller{
         $this->response(array("standard_scatter"=>$general_standard,"temperature_scatter"=>$general_scatter_temp,"humidity_scatter"=>$general_scatter_humidity));
     }
 
+    public function area_compliance_get(){ //区域详情-达标率
+        $data_standard = $this->detail_standard();
+        $general_standard = $this->general_one($data_standard,"standard");
+        $this->response($general_standard);
+    }
+
+    public function area_scatter_get(){ //区域详情-稳定概况
+        $type = $this->get("type");
+        if(!$type){
+            $this->response(array("error"=>"缺少type参数"));
+        }
+        $data_scatter = $this->data_scatter();
+        if(!array_key_exists("scatter_".$type, $data_scatter)){
+            $this->response(array("error"=>"type参数错误"));
+        }
+        $scatter = $this->general_one($data_scatter["scatter_".$type],"scatter");
+        $this->response($scatter);
+    }
+
     protected function general_one($data,$type){
         $calculate = calculate($data);
         $rs = array();
@@ -106,7 +125,7 @@ class Area extends MY_Controller{
         $k = $this->get("key"); //材质对应编号
         $table = $this->get("table"); //表类型
         if(!$k || !$table){
-            $this->response();
+            $this->response(array("error"=>"缺少必要参数"));
         }
         $waves = $waves_abnormal = $waves_status = $waves_abnormal_status = array();
         if (in_array($this->definite_time,array("week","month"))){ // 算本周or本月日波动，取最小值和最大值
@@ -198,7 +217,7 @@ class Area extends MY_Controller{
         if(array_key_exists($k,$data_tables) && array_key_exists($table,$data_tables[$k])){
             $this->response(array("xdata"=>$data_tables[$k]["xdata"],"ydata"=>$data_tables[$k][$table]));
         }else{
-            $this->response();
+            $this->response(array("error"=>"未找到数据"));
         }
     }
 
@@ -343,7 +362,7 @@ class Area extends MY_Controller{
         if(array_key_exists($param_get, $rs)){
             $this->response($rs[$param_get]);
         }else{
-            $this->response();
+            $this->response(array("error"=>"未找到数据"));
         }
     }
 
@@ -712,7 +731,7 @@ class Area extends MY_Controller{
     public function all_compliance_get(){ //达标率 雷达图
         $mids = $this->get("mids");
         if(!$mids){
-            $this->response();
+            $this->response(array("error"=>"缺少mids"));
         }
         $mid_arr = explode(",",$mids);
         $legend = array();
@@ -736,7 +755,7 @@ class Area extends MY_Controller{
     public function all_scatter_get(){ //离散系数 雷达图
         $mids = $this->get("mids");
         if(!$mids){
-            $this->response();
+            $this->response(array("error"=>"缺少mids"));
         }
         $mid_arr = explode(",",$mids);
         $legend = array();
@@ -760,7 +779,7 @@ class Area extends MY_Controller{
     public function analysis_counts_get(){ //展柜数量获取
         $mids = $this->get("mids");
         if(!$mids){
-            $this->response();
+            $this->response(array("error"=>"缺少mids"));
         }
         $counts_arr = $counts_rs = array();
         $mid_arr = explode(",",$mids);
@@ -779,7 +798,7 @@ class Area extends MY_Controller{
     public function analysis_compliance_get(){ //达标率统计概况
         $mids = $this->get("mids");
         if(!$mids){
-            $this->response();
+            $this->response(array("error"=>"缺少mids"));
         }
         $museum_standard = $legend = array();
         $mid_arr = explode(",",$mids);
@@ -821,7 +840,7 @@ class Area extends MY_Controller{
     public function analysis_temperature_get(){ //稳定性统计概况-温度
         $mids = $this->get("mids");
         if(!$mids){
-            $this->response();
+            $this->response(array("error"=>"缺少mids"));
         }
         $museum_temperature = $legend = array();
         $mid_arr = explode(",",$mids);
@@ -864,7 +883,7 @@ class Area extends MY_Controller{
     public function analysis_humidity_get(){ //稳定性统计概况-湿度
         $mids = $this->get("mids");
         if(!$mids){
-            $this->response();
+            $this->response(array("error"=>"缺少mids"));
         }
         $museum_humidity = $legend = array();
         $mid_arr = explode(",",$mids);

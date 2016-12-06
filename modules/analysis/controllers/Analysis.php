@@ -18,7 +18,7 @@ class Analysis extends MY_Controller{ //按时间对比
         $this->etime = $this->get("etime");
         $this->mid = $this->get("mid");
         if(!$this->mid || !$this->btime || !$this->etime){
-            $this->response();
+            $this->response(array("error"=>"缺少必要参数"));
         }
         $this->dates = array('D'.$this->btime,'D'.$this->etime);
         $this->legend = array(substr($this->btime,0,4)."-".substr($this->btime,4,2).'-'.substr($this->btime,6,2),substr($this->etime,0,4)."-".substr($this->etime,4,2).'-'.substr($this->etime,6,2));
@@ -54,7 +54,7 @@ class Analysis extends MY_Controller{ //按时间对比
         $counts_rs = array();
         $counts = $this->db->select("count_showcase")->where("mid",$this->mid)->get("data_base")->row_array();
         if(!$counts){
-            $this->response();
+            $this->response(array("error"=>"找不到数据"));
         }
         foreach ($this->legend as $date){
             $counts_rs[] = array("name"=>$date,"count"=>$counts["count_showcase"]);//展柜数量
