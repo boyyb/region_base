@@ -99,7 +99,11 @@ class Area extends MY_Controller{
         $rs["all"] = count($data);
         $rs["standard"] = $calculate["standard"];
         $rs["average"] = $calculate["average"];
-        $rs["max"] = max($data)*1.1;
+        if($type == "standard"){
+            $rs["max"] = 1;
+        }elseif ($type == "scatter"){
+            $rs["max"] = max($data)*1.1;
+        }
         foreach ($data as $k => $value){
             $value = $value?$value:0;
             $rs["museum"][] = array("mid"=>$k,"name"=>$this->museum[$k],"data"=>$value,"distance"=>$value - $calculate["average"]);
