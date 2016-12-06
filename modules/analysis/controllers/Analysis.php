@@ -233,24 +233,24 @@ class Analysis extends MY_Controller{ //按时间对比
             foreach ($data_complex as $item) {
                 if($item["date"] == $date){
                     $standard = $scatter = array();
-                    $standard[] = $item["temperature_total"]?round(($item["temperature_total"] - $item["temperature_abnormal"])/$item["temperature_total"]):0;
-                    $standard[] = $item["humidity_total"]?round(($item["humidity_total"] - $item["humidity_abnormal"])/$item["humidity_total"]):0;
-                    $standard[] = $item["light_total"]?round(($item["light_total"] - $item["light_abnormal"])/$item["light_total"]):0;
-                    $standard[] = $item["uv_total"]?round(($item["uv_total"] - $item["uv_abnormal"])/$item["uv_total"]):0;
-                    $standard[] = $item["voc_total"]?round(($item["voc_total"] - $item["voc_abnormal"])/$item["voc_total"]):0;
-                    $scatter[] = $item["scatter_temperature"]?$item["scatter_temperature"]:0;
-                    $scatter[] = $item["scatter_humidity"]?$item["scatter_humidity"]:0;
-                    $scatter[] = $item["scatter_light"]?$item["scatter_light"]:0;
-                    $scatter[] = $item["scatter_uv"]?$item["scatter_uv"]:0;
-                    $scatter[] = $item["scatter_voc"]?$item["scatter_voc"]:0;
+                    $standard[] = $item["temperature_total"]?round(($item["temperature_total"] - $item["temperature_abnormal"])/$item["temperature_total"])*100:0;
+                    $standard[] = $item["humidity_total"]?round(($item["humidity_total"] - $item["humidity_abnormal"])/$item["humidity_total"])*100:0;
+                    $standard[] = $item["light_total"]?round(($item["light_total"] - $item["light_abnormal"])/$item["light_total"])*100:0;
+                    $standard[] = $item["uv_total"]?round(($item["uv_total"] - $item["uv_abnormal"])/$item["uv_total"])*100:0;
+                    $standard[] = $item["voc_total"]?round(($item["voc_total"] - $item["voc_abnormal"])/$item["voc_total"])*100:0;
+                    $scatter[] = $item["scatter_temperature"]?$item["scatter_temperature"]*100:0;
+                    $scatter[] = $item["scatter_humidity"]?$item["scatter_humidity"]*100:0;
+                    $scatter[] = $item["scatter_light"]?$item["scatter_light"]*100:0;
+                    $scatter[] = $item["scatter_uv"]?$item["scatter_uv"]*100:0;
+                    $scatter[] = $item["scatter_voc"]?$item["scatter_voc"]*100:0;
                     $average_standard = round(array_sum($standard)/sizeof($standard),2);
                     $average_scatter = round(array_sum($scatter)/sizeof($scatter),2);
                     array_unshift($standard,$average_standard);
                     array_unshift($scatter,$average_scatter);
                     $date = substr($date,1,8);
                     $date = substr($date,0,4)."-".substr($date,4,2).'-'.substr($date,6,2);
-                    $data["compliance"][] = array("name"=>$date,"value"=>$standard*100);
-                    $data["scatter"][] = array("name"=>$date,"value"=>$scatter*100);
+                    $data["compliance"][] = array("name"=>$date,"value"=>$standard);
+                    $data["scatter"][] = array("name"=>$date,"value"=>$scatter);
                     break;
                 }
             }
