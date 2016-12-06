@@ -72,6 +72,53 @@ class Area extends MY_Controller{
         $this->response(array("standard_scatter"=>$general_standard,"temperature_scatter"=>$general_scatter_temp,"humidity_scatter"=>$general_scatter_humidity));
     }
 
+    public function area_compliance_get(){ //区域详情-达标率
+        $data_standard = $this->detail_standard();
+        $general_standard = $this->general_one($data_standard,"standard");
+        $this->response($general_standard);
+    }
+
+    public function temperature_scatter_get(){ //区域详情-温度稳定概况
+        //$type = $this->get("type");
+        $type = "temperature";
+        if(!$type){
+            $this->response(array("error"=>"缺少type参数"));
+        }
+        $data_scatter = $this->data_scatter();
+        if(!array_key_exists("scatter_".$type, $data_scatter)){
+            $this->response(array("error"=>"type参数错误"));
+        }
+        $scatter = $this->general_one($data_scatter["scatter_".$type],"scatter");
+        $this->response($scatter);
+    }
+
+    public function humidity_scatter_get(){ //区域详情-湿度稳定概况
+        if($this->env_type == "展厅"){
+            $param = array("10");
+        }else{
+            $param = array("1","2","3","12");
+        }
+        $humidity = $this->db->select("p.mid,p.standard,p.average")
+                             ->join("data_envtype_param p","m.id=p.mid")
+                             ->where("p.date",$this->date)
+                             ->where("p.env_type",$this->env_type)
+                             ->where_in("p.param",$param)
+                             ->get("museum m")
+                             ->result_array();
+        $data = $data_average = array();
+        foreach ($humidity as $value){
+            if($value["average"]){
+                $data[$value["mid"]][] = round($value["standard"] / $value["average"],2);
+            }
+        }
+
+        foreach ($data as $key => $value){
+            $data_average[$key] = round(array_sum($value) / sizeof($value),2);
+        }
+        $scatter = $this->general_one($data_average,"scatter");
+        $this->response($scatter);
+    }
+
     protected function general_one($data,$type){
         $calculate = calculate($data);
         $rs = array();
@@ -80,7 +127,11 @@ class Area extends MY_Controller{
         $rs["all"] = count($data);
         $rs["standard"] = $calculate["standard"];
         $rs["average"] = $calculate["average"];
-        $rs["max"] = max($data)*1.1;
+        if($type == "standard"){
+            $rs["max"] = 1;
+        }elseif ($type == "scatter"){
+            $rs["max"] = $data?max($data)*1.1:0;
+        }
         foreach ($data as $k => $value){
             $value = $value?$value:0;
             $rs["museum"][] = array("mid"=>$k,"name"=>$this->museum[$k],"data"=>$value,"distance"=>$value - $calculate["average"]);
@@ -106,7 +157,7 @@ class Area extends MY_Controller{
         $k = $this->get("key"); //材质对应编号
         $table = $this->get("table"); //表类型
         if(!$k || !$table){
-            $this->response();
+            $this->response(array("error"=>"缺少必要参数"));
         }
         $waves = $waves_abnormal = $waves_status = $waves_abnormal_status = array();
         if (in_array($this->definite_time,array("week","month"))){ // 算本周or本月日波动，取最小值和最大值
@@ -198,7 +249,7 @@ class Area extends MY_Controller{
         if(array_key_exists($k,$data_tables) && array_key_exists($table,$data_tables[$k])){
             $this->response(array("xdata"=>$data_tables[$k]["xdata"],"ydata"=>$data_tables[$k][$table]));
         }else{
-            $this->response();
+            $this->response(array("error"=>"未找到数据"));
         }
     }
 
@@ -343,7 +394,7 @@ class Area extends MY_Controller{
         if(array_key_exists($param_get, $rs)){
             $this->response($rs[$param_get]);
         }else{
-            $this->response();
+            $this->response(array("error"=>"未找到数据"));
         }
     }
 
@@ -712,17 +763,17 @@ class Area extends MY_Controller{
     public function all_compliance_get(){ //达标率 雷达图
         $mids = $this->get("mids");
         if(!$mids){
-            $this->response();
+            $this->response(array("error"=>"缺少mids"));
         }
         $mid_arr = explode(",",$mids);
         $legend = array();
         $indicator_compliance = array(
-            array("name"=>"全参数平均达标率","max"=>1),
-            array("name"=>"温度","max"=>1),
-            array("name"=>"湿度","max"=>1),
-            array("name"=>"光照","max"=>1),
-            array("name"=>"紫外","max"=>1),
-            array("name"=>"有机挥发物","max"=>1)
+            array("name"=>"全参数平均达标率","max"=>100),
+            array("name"=>"温度","max"=>100),
+            array("name"=>"湿度","max"=>100),
+            array("name"=>"光照","max"=>100),
+            array("name"=>"紫外","max"=>100),
+            array("name"=>"有机挥发物","max"=>100)
         );
         $datas = $this->depart_table($mid_arr);
         foreach ($mid_arr as $mid){
@@ -736,17 +787,17 @@ class Area extends MY_Controller{
     public function all_scatter_get(){ //离散系数 雷达图
         $mids = $this->get("mids");
         if(!$mids){
-            $this->response();
+            $this->response(array("error"=>"缺少mids"));
         }
         $mid_arr = explode(",",$mids);
         $legend = array();
         $indicator_scatter = array(
-            array("name"=>"全参数平均离散系数","max"=>0.15),
-            array("name"=>"温度","max"=>0.15),
-            array("name"=>"湿度","max"=>0.15),
-            array("name"=>"光照","max"=>0.15),
-            array("name"=>"紫外","max"=>0.15),
-            array("name"=>"有机挥发物","max"=>0.15)
+            array("name"=>"全参数平均离散系数","max"=>15),
+            array("name"=>"温度","max"=>15),
+            array("name"=>"湿度","max"=>15),
+            array("name"=>"光照","max"=>15),
+            array("name"=>"紫外","max"=>15),
+            array("name"=>"有机挥发物","max"=>15)
         );
         $datas = $this->depart_table($mid_arr);
         foreach ($mid_arr as $mid){
@@ -760,7 +811,7 @@ class Area extends MY_Controller{
     public function analysis_counts_get(){ //展柜数量获取
         $mids = $this->get("mids");
         if(!$mids){
-            $this->response();
+            $this->response(array("error"=>"缺少mids"));
         }
         $counts_arr = $counts_rs = array();
         $mid_arr = explode(",",$mids);
@@ -779,7 +830,7 @@ class Area extends MY_Controller{
     public function analysis_compliance_get(){ //达标率统计概况
         $mids = $this->get("mids");
         if(!$mids){
-            $this->response();
+            $this->response(array("error"=>"缺少mids"));
         }
         $museum_standard = $legend = array();
         $mid_arr = explode(",",$mids);
@@ -789,22 +840,22 @@ class Area extends MY_Controller{
             if(array_key_exists($mid, $data_standard)){
                 $data = array();//达标率柱状图数据
                 if($data_standard[$mid] >= 0.995 && $data_standard[$mid]<= 1){
-                    $data[] = $data_standard[$mid];
+                    $data[] = $data_standard[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
                 if($data_standard[$mid] >= 0.99 && $data_standard[$mid]< 0.995){
-                    $data[] = $data_standard[$mid];
+                    $data[] = $data_standard[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
                 if($data_standard[$mid] >= 0.95 && $data_standard[$mid]< 0.99){
-                    $data[] = $data_standard[$mid];
+                    $data[] = $data_standard[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
                 if($data_standard[$mid]< 0.95){
-                    $data[] = $data_standard[$mid];
+                    $data[] = $data_standard[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
@@ -821,7 +872,7 @@ class Area extends MY_Controller{
     public function analysis_temperature_get(){ //稳定性统计概况-温度
         $mids = $this->get("mids");
         if(!$mids){
-            $this->response();
+            $this->response(array("error"=>"缺少mids"));
         }
         $museum_temperature = $legend = array();
         $mid_arr = explode(",",$mids);
@@ -832,22 +883,22 @@ class Area extends MY_Controller{
             if(array_key_exists($mid,$temperature)){
                 $data = array();//温度离散系数 柱状图数据
                 if($temperature[$mid] > 0 && $temperature[$mid]<= 0.04){
-                    $data[] = $temperature[$mid];
+                    $data[] = $temperature[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
                 if($temperature[$mid] >0.04 && $temperature[$mid]<= 0.06){
-                    $data[] = $temperature[$mid];
+                    $data[] = $temperature[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
                 if($temperature[$mid] >0.06 && $temperature[$mid]<= 0.07){
-                    $data[] = $temperature[$mid];
+                    $data[] = $temperature[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
                 if($temperature[$mid]> 0.075){
-                    $data[] = $temperature[$mid];
+                    $data[] = $temperature[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
@@ -864,7 +915,7 @@ class Area extends MY_Controller{
     public function analysis_humidity_get(){ //稳定性统计概况-湿度
         $mids = $this->get("mids");
         if(!$mids){
-            $this->response();
+            $this->response(array("error"=>"缺少mids"));
         }
         $museum_humidity = $legend = array();
         $mid_arr = explode(",",$mids);
@@ -875,22 +926,22 @@ class Area extends MY_Controller{
             if(array_key_exists($mid,$humidity)){
                 $data = array();//湿度离散系数 柱状图数据
                 if($humidity[$mid] > 0 && $humidity[$mid]<= 0.02){
-                    $data[] = $humidity[$mid];
+                    $data[] = $humidity[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
                 if($humidity[$mid] >0.02 && $humidity[$mid]<= 0.03){
-                    $data[] = $humidity[$mid];
+                    $data[] = $humidity[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
                 if($humidity[$mid] >0.03 && $humidity[$mid]<= 0.035){
-                    $data[] = $humidity[$mid];
+                    $data[] = $humidity[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
                 if($humidity[$mid]> 0.04){
-                    $data[] = $humidity[$mid];
+                    $data[] = $humidity[$mid]*100;
                 }else{
                     $data[] = 0;
                 }
@@ -905,7 +956,10 @@ class Area extends MY_Controller{
     }
 
     private function depart_table($mid_arr = array()){
-        $data = array();
+        $data = array(
+            "compliance"=>array(),
+            "scatter"=>array()
+        );
         $data_complex = $this->db->select("c.*")
             ->join("data_complex c","c.mid=m.id")
             ->where("c.env_type",$this->env_type)
@@ -917,16 +971,16 @@ class Area extends MY_Controller{
             foreach ($data_complex as $item) {
                 if($item["mid"] == $mid){
                     $standard = $scatter = array();
-                    $standard[] = $item["temperature_total"]?round(($item["temperature_total"] - $item["temperature_abnormal"])/$item["temperature_total"]):0;
-                    $standard[] = $item["humidity_total"]?round(($item["humidity_total"] - $item["humidity_abnormal"])/$item["humidity_total"]):0;
-                    $standard[] = $item["light_total"]?round(($item["light_total"] - $item["light_abnormal"])/$item["light_total"]):0;
-                    $standard[] = $item["uv_total"]?round(($item["uv_total"] - $item["uv_abnormal"])/$item["uv_total"]):0;
-                    $standard[] = $item["voc_total"]?round(($item["voc_total"] - $item["voc_abnormal"])/$item["voc_total"]):0;
-                    $scatter[] = $item["scatter_temperature"]?$item["scatter_temperature"]:0;
-                    $scatter[] = $item["scatter_humidity"]?$item["scatter_humidity"]:0;
-                    $scatter[] = $item["scatter_light"]?$item["scatter_light"]:0;
-                    $scatter[] = $item["scatter_uv"]?$item["scatter_uv"]:0;
-                    $scatter[] = $item["scatter_voc"]?$item["scatter_voc"]:0;
+                    $standard[] = $item["temperature_total"]?round(($item["temperature_total"] - $item["temperature_abnormal"])/$item["temperature_total"])*100:0;
+                    $standard[] = $item["humidity_total"]?round(($item["humidity_total"] - $item["humidity_abnormal"])/$item["humidity_total"])*100:0;
+                    $standard[] = $item["light_total"]?round(($item["light_total"] - $item["light_abnormal"])/$item["light_total"])*100:0;
+                    $standard[] = $item["uv_total"]?round(($item["uv_total"] - $item["uv_abnormal"])/$item["uv_total"])*100:0;
+                    $standard[] = $item["voc_total"]?round(($item["voc_total"] - $item["voc_abnormal"])/$item["voc_total"])*100:0;
+                    $scatter[] = $item["scatter_temperature"]?$item["scatter_temperature"]*100:0;
+                    $scatter[] = $item["scatter_humidity"]?$item["scatter_humidity"]*100:0;
+                    $scatter[] = $item["scatter_light"]?$item["scatter_light"]*100:0;
+                    $scatter[] = $item["scatter_uv"]?$item["scatter_uv"]*100:0;
+                    $scatter[] = $item["scatter_voc"]?$item["scatter_voc"]*100:0;
                     $average_standard = round(array_sum($standard)/sizeof($standard),2);
                     $average_scatter = round(array_sum($scatter)/sizeof($scatter),2);
                     array_unshift($standard,$average_standard);

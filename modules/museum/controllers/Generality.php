@@ -17,6 +17,14 @@ class Generality extends REST_Controller{
         }
     }
 
+    public function all_museum_get(){
+        $museum =  $this->db->select("m.id,m.name")
+                            ->join("data_base b","m.id=b.mid")
+                            ->get("museum m")
+                            ->result_array();
+        $this->response($museum);
+    }
+
     public function index_get(){ //各馆概况
         $b = M("data_base");
         $c = M("data_complex");
@@ -25,8 +33,8 @@ class Generality extends REST_Controller{
         $abnormal_all_small = $total_all_small = $abnormal_all_micro = $total_all_micro = 0;
         $compliance = array();
         $base = $b->fetAll();
-        //$complex = $c->fetAll(array("date"=>"D".date("Ymd",strtotime("-1 day"))));
-        $complex = $c->fetAll(array("date"=>"D20161024"));
+        $complex = $c->fetAll(array("date"=>"D".date("Ymd",strtotime("-1 day"))));
+        //$complex = $c->fetAll(array("date"=>"D20161206"));
         foreach ($complex as $value){
             if($value["mid"]){
                 if($value["env_type"] == "展厅"){//小环境
@@ -70,12 +78,21 @@ class Generality extends REST_Controller{
                         $abnormal_micro = array_key_exists("abnormal",$compliance[$value["mid"]]["micro"])?array_sum($compliance[$value["mid"]]["micro"]["abnormal"]):0;
                         $total_micro = array_key_exists("total",$compliance[$value["mid"]]["micro"])?array_sum($compliance[$value["mid"]]["micro"]["total"]):0;
                         $data["value"][] = $micro_compliance[] = $total_micro ? round(($total_micro - $abnormal_micro) / $total_micro, 2) : 0;
+                    }else{
+                        $data["value"][] = 0;
                     }
+
+
                     if(array_key_exists("small",$compliance[$value["mid"]])) {
                         $abnormal = array_key_exists("abnormal",$compliance[$value["mid"]]["small"])?array_sum($compliance[$value["mid"]]["small"]["abnormal"]):0;
                         $total = array_key_exists("total",$compliance[$value["mid"]]["small"])?array_sum($compliance[$value["mid"]]["small"]["total"]):0;
                         $data["value"][] = $small_compliance[] = $total ? round(($total - $abnormal) / $total, 2) : 0;
+                    }else{
+                        $data["value"][] = 0;
                     }
+                }else{
+                    $data["value"][] = 0;
+                    $data["value"][] = 0;
                 }
                 $datas[] = $data;
                 $result[] = array(
@@ -92,8 +109,8 @@ class Generality extends REST_Controller{
             array("name"=>"珍贵文物数量","max"=>max($precious_relic)),
             array("name"=>"固定展览数量","max"=>max($fixed_exhibition)),
             array("name"=>"临时展览数量","max"=>max($temporary_exhibition)),
-            array("name"=>"昨日微环境达标率","max"=>max($micro_compliance)),
-            array("name"=>"昨日小环境达标率","max"=>max($small_compliance))
+            array("name"=>"昨日微环境达标率","max"=>$micro_compliance?max($micro_compliance):0),
+            array("name"=>"昨日小环境达标率","max"=>$small_compliance?max($small_compliance):0)
         );
 
         $average = array(
