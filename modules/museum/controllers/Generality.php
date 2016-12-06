@@ -8,19 +8,21 @@
 class Generality extends REST_Controller{
 
     private $museum = array();
-    private $all_museum = array();
     function __construct()
     {
         parent::__construct();
         $museum = $this->db->select("id,name")->get("museum")->result_array();
-        $this->all_museum = $museum;
         foreach ($museum as $value){
             $this->museum[$value["id"]] = $value["name"];
         }
     }
 
     public function all_museum_get(){
-        $this->response($this->all_museum);
+        $museum =  $this->db->select("m.id,m.name")
+                            ->join("data_base b","m.id=b.mid")
+                            ->get("museum m")
+                            ->result_array();
+        $this->response($museum);
     }
 
     public function index_get(){ //各馆概况
