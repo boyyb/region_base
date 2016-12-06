@@ -45,6 +45,7 @@ class History extends MY_Controller{
         }
 
         $this->date_list = $this->_date_list($this->date_start,$this->date_end);
+        if(count($this->date_list) < 2) $this->response(array("error"=>"查询结果为单天数据！"));
     }
 
     //生成日期列表

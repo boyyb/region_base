@@ -235,7 +235,7 @@ class Details extends MY_Controller{
                     ->get("data_abnormal")
                     ->result_array();
             }
-            //日波动统计(直接统计天数据)
+            //日波动统计(天数据直接统计)
             $wave_abnormal = $wave_abnormal2 = array();
             $wave_arr = array();
             if(in_array($param_id,array(1,2,3,7,10,12))){ //仅计算温湿度
@@ -284,7 +284,7 @@ class Details extends MY_Controller{
         return $data;
     }
 
-    //数据调用-但博物馆按时间对比
+    //数据调用-单个博物馆按时间对比
     public function data_by_time_get(){
         if(count(array_filter($this->date_compare)) != 2) $this->response(array("error"=>"对比日期格式不正确！"));
         foreach($this->env_param as $param){
