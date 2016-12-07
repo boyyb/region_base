@@ -34,7 +34,7 @@ class Generality extends REST_Controller{
         $compliance = array();
         $base = $b->fetAll();
         $complex = $c->fetAll(array("date"=>"D".date("Ymd",strtotime("-1 day"))));
-        //$complex = $c->fetAll(array("date"=>"D20161024"));
+        //$complex = $c->fetAll(array("date"=>"D20161206"));
         foreach ($complex as $value){
             if($value["mid"]){
                 if($value["env_type"] == "展厅"){//小环境
@@ -109,8 +109,8 @@ class Generality extends REST_Controller{
             array("name"=>"珍贵文物数量","max"=>max($precious_relic)),
             array("name"=>"固定展览数量","max"=>max($fixed_exhibition)),
             array("name"=>"临时展览数量","max"=>max($temporary_exhibition)),
-            array("name"=>"昨日微环境达标率","max"=>max($micro_compliance)),
-            array("name"=>"昨日小环境达标率","max"=>max($small_compliance))
+            array("name"=>"昨日微环境达标率","max"=>$micro_compliance?max($micro_compliance):0),
+            array("name"=>"昨日小环境达标率","max"=>$small_compliance?max($small_compliance):0)
         );
 
         $average = array(
