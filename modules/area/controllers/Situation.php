@@ -60,7 +60,7 @@ class Situation extends MY_Controller{
     }
 
     //环形图-达标率
-    public function pie_compliance_get(){
+    protected function pie_compliance_get(){
         $env = $this->env_type;
         $param = $this->env_param;
 
@@ -106,8 +106,8 @@ class Situation extends MY_Controller{
                 "value"=>0,
                 "name"=>$v['name']);
         }
-        return $sp_data;die;
-        $this->response($sp_data);
+        return $sp_data;
+        //$this->response($sp_data);
     }
 
     //环形图-稳定性(温度湿度)
@@ -176,25 +176,25 @@ class Situation extends MY_Controller{
         return $scatter;
     }
 
+    //圆环图-温度稳定性
     public function pie_scatter_temperature_get(){
         $data = $this->pie_stability();
         $this->response($data['temperature']);
     }
 
+    //圆环图-湿度稳定性
     public function pie_scatter_humidity_get(){
         $data = $this->pie_stability();
         $this->response($data['humidity']);
     }
-    //临时调用
+    //圆环图-数据3合1
     public function pie(){
         $data['compliance'] = $this->pie_compliance_get();
         $data1 = $this->pie_stability();
         $data['temperature_scatter'] = $data1['temperature'];
         $data['humidity_scatter'] = $data1['humidity'];
-        //var_dump($data);
+
         $this->response($data);
-
-
     }
 
 
