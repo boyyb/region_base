@@ -78,8 +78,9 @@ class Area extends MY_Controller{
         $this->response($general_standard);
     }
 
-    public function area_scatter_get(){ //区域详情-稳定概况
-        $type = $this->get("type");
+    public function temperature_scatter_get(){ //区域详情-温度稳定概况
+        //$type = $this->get("type");
+        $type = "temperature";
         if(!$type){
             $this->response(array("error"=>"缺少type参数"));
         }
@@ -88,6 +89,33 @@ class Area extends MY_Controller{
             $this->response(array("error"=>"type参数错误"));
         }
         $scatter = $this->general_one($data_scatter["scatter_".$type],"scatter");
+        $this->response($scatter);
+    }
+
+    public function humidity_scatter_get(){ //区域详情-湿度稳定概况
+        if($this->env_type == "展厅"){
+            $param = array("10");
+        }else{
+            $param = array("1","2","3","12");
+        }
+        $humidity = $this->db->select("p.mid,p.standard,p.average")
+                             ->join("data_envtype_param p","m.id=p.mid")
+                             ->where("p.date",$this->date)
+                             ->where("p.env_type",$this->env_type)
+                             ->where_in("p.param",$param)
+                             ->get("museum m")
+                             ->result_array();
+        $data = $data_average = array();
+        foreach ($humidity as $value){
+            if($value["average"]){
+                $data[$value["mid"]][] = round($value["standard"] / $value["average"],2);
+            }
+        }
+
+        foreach ($data as $key => $value){
+            $data_average[$key] = round(array_sum($value) / sizeof($value),2);
+        }
+        $scatter = $this->general_one($data_average,"scatter");
         $this->response($scatter);
     }
 
@@ -102,7 +130,7 @@ class Area extends MY_Controller{
         if($type == "standard"){
             $rs["max"] = 1;
         }elseif ($type == "scatter"){
-            $rs["max"] = max($data)*1.1;
+            $rs["max"] = $data?max($data)*1.1:0;
         }
         foreach ($data as $k => $value){
             $value = $value?$value:0;
