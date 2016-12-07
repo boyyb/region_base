@@ -8,6 +8,11 @@
 
 if(!function_exists("calculate")){
     function calculate($arr){
+        foreach ($arr as $key => $value){
+            if($value == 0){
+                unset($arr[$key]);
+            }
+        }
         $average = sizeof($arr)?round(array_sum($arr)/sizeof($arr),3):0;
         $sum = 0;
         foreach ($arr as $k =>$v){
