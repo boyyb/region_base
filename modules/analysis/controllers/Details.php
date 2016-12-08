@@ -80,6 +80,7 @@ class Details extends MY_Controller{
                 ->result_array();
             $datas[$mid] = isset($dep_datas[0])?$dep_datas[0]:null;
         }
+
         foreach($datas as $mid=>$v){
             if(!$v) continue;
             //异常值统计
@@ -105,10 +106,10 @@ class Details extends MY_Controller{
                         ->result_array();
                     if(!$dep_data) continue;
                     $temp = explode(",",$dep_data[0]['wave']);
-                    $wave_arr['min'][] = $temp[0];
-                    $wave_arr['max'][] = $temp[1];
-                    $wave_arr['min2'][] = $temp[2];
-                    $wave_arr['max2'][] = $temp[3];
+                    $wave_arr['min'][] = array("value"=>$temp[0],"status"=>substr(sprintf("%04d", decbin($dep_data[0]['wave_status'])),0,1));
+                    $wave_arr['max'][] = array("value"=>$temp[1],"status"=>substr(sprintf("%04d", decbin($dep_data[0]['wave_status'])),1,1));
+                    $wave_arr['min2'][] = array("value"=>$temp[2],"status"=>substr(sprintf("%04d", decbin($dep_data[0]['wave_status'])),2,1));
+                    $wave_arr['max2'][] = array("value"=>$temp[3],"status"=>substr(sprintf("%04d", decbin($dep_data[0]['wave_status'])),3,1));
                     if($dep_data[0]['wave_status']>0){ //存在日波动异常
                         foreach(array(0,1) as $type){
                             $dwa_datas = $this->db
@@ -123,11 +124,24 @@ class Details extends MY_Controller{
                     }
                 }
             }
+
             //各自波动数据取并集
-            $wave_min = isset($wave_arr['min'])?min($wave_arr['min']):null;
-            $wave_max = isset($wave_arr['max'])?max($wave_arr['max']):null;
-            $wave_min2 = isset($wave_arr['min2'])?min($wave_arr['min2']):null;
-            $wave_max2 = isset($wave_arr['max2'])?max($wave_arr['max2']):null;
+            foreach($wave_arr as $k=>$v1){
+                usort($v1,function($x,$y){  //从小到大排序
+                    if($x['value']==$y['value']){
+                        return 0;//value相等的不用排
+                    }
+                    return $x['value']>$y['value']?1:-1;
+                });
+                if($k=="min" || $k=="min2") $wave[$k] = reset($v1);
+                else $wave[$k] = end($v1);
+
+            }
+            
+            $wave_min = isset($wave['min'])?$wave['min']:null;
+            $wave_max = isset($wave['max'])?$wave['max']:null;
+            $wave_min2 = isset($wave['min2'])?$wave['min2']:null;
+            $wave_max2 = isset($wave['max2'])?$wave['max2']:null;
 
             $data[] = array(
                 "id"=>$v['id'],
@@ -149,7 +163,9 @@ class Details extends MY_Controller{
                 "wave_abnormal"=>$wave_abnormal,
                 "wave_abnormal2"=>$wave_abnormal2
             );
+
         }
+
         return $data;
     }
 
@@ -240,10 +256,10 @@ class Details extends MY_Controller{
             $wave_arr = array();
             if(in_array($param_id,array(1,2,3,7,10,12))){ //仅计算温湿度
                 $temp = explode(",",$v['wave']);
-                $wave_arr['min'] = isset($temp[0])?$temp[0]:null;
-                $wave_arr['max'] = isset($temp[1])?$temp[1]:null;
-                $wave_arr['min2'] = isset($temp[2])?$temp[2]:null;
-                $wave_arr['max2'] = isset($temp[3])?$temp[3]:null;
+                $wave_arr['min'] = array("value"=>$temp[0],"status"=>substr(sprintf("%04d", decbin($v['wave_status'])),0,1));
+                $wave_arr['max'] = array("value"=>$temp[1],"status"=>substr(sprintf("%04d", decbin($v['wave_status'])),1,1));
+                $wave_arr['min2'] = array("value"=>$temp[2],"status"=>substr(sprintf("%04d", decbin($v['wave_status'])),2,1));
+                $wave_arr['max2'] = array("value"=>$temp[3],"status"=>substr(sprintf("%04d", decbin($v['wave_status'])),3,1));
                 if($v['wave_status']>0){ //存在日波动异常
                     foreach(array(0,1) as $type){
                         $dwa_datas = $this->db
