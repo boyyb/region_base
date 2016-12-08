@@ -40,7 +40,7 @@ class Area extends MY_Controller{
         foreach ($data_flag as $k => $value){
             $total = array_sum($value["total"]);
             $abnormal = array_sum($value["abnormal"]);
-            $data_standard[$k] = $total?round(($total - $abnormal) / $total,2):0;
+            $data_standard[$k] = $total?round(($total - $abnormal) / $total,3):0;
         }
 
         return $data_standard;
