@@ -137,7 +137,7 @@ class Details extends MY_Controller{
                 else $wave[$k] = end($v1);
 
             }
-            
+
             $wave_min = isset($wave['min'])?$wave['min']:null;
             $wave_max = isset($wave['max'])?$wave['max']:null;
             $wave_min2 = isset($wave['min2'])?$wave['min2']:null;
@@ -355,5 +355,147 @@ class Details extends MY_Controller{
         $this->response($ret);
     }
 
+
+    //统计异常值-根据depid获取数据
+    public function abnormal(){
+        $depid = $this->get("depid");
+        if(!$depid) $this->response(array("error"=>"缺少必要参数！"));
+        $data = $this->db
+            ->select("id,CONCAT(`date`,\" \",`time`) as date,equip_no,val")
+            ->where("depid",$depid)
+            ->get("data_abnormal")
+            ->result_array();
+        if(!$data) $this->response(array("error"=>"没有查询到数据！"));
+        $this->response($data);
+    }
+
+    //统计日波动超标数据-多博物馆对比
+    protected function _wave_abnormal($param_id){
+        foreach($this->mids as $mid){
+            $wave_abnormal = $wave_abnormal2 = array();
+            foreach($this->date_list as $date) {
+                $dep_data = $this->db
+                    ->where("date", "D" . $date)
+                    ->where("env_type", $this->env_type)
+                    ->where("mid", $mid)
+                    ->where("param", $param_id)
+                    ->where("wave_status>",0)
+                    ->get("data_envtype_param")
+                    ->result_array();
+                if(!$dep_data) continue;
+                foreach(array(0,1) as $type){
+                    $dwa_datas = $this->db
+                        ->select("id,val,env_name,date")
+                        ->where("depid",$dep_data[0]['id'])
+                        ->where("type",$type)
+                        ->get("data_wave_abnormal")
+                        ->result_array();
+                    if($type == 0) $wave_abnormal = array_merge($wave_abnormal,$dwa_datas); //累加每天的波动异常数据
+                    else $wave_abnormal2 = array_merge($wave_abnormal2,$dwa_datas);
+                }
+            }
+
+            $data[] = array(
+                "mid"=>(string)$mid,
+                "name"=>$this->museum[$mid],
+                "wave_abnormal"=>$wave_abnormal,
+                "wave_abnormal2"=>$wave_abnormal2
+            );
+        }
+
+        return $data;
+    }
+
+    public function wave_abnormal(){
+        $data['temperature'] = $this->_wave_abnormal(7);
+        if($this->env_type == "展厅"){
+            $data['humidity'] = $this->_wave_abnormal(10);
+        }else{
+            $data['humidity'][] = array(
+                "texture"=>"石质、陶器、瓷器",
+                "list"=>$this->_wave_abnormal(1)
+            );
+            $data['humidity'][] = array(
+                "texture"=>"铁质、青铜",
+                "list"=>$this->_wave_abnormal(2)
+            );
+            $data['humidity'][] = array(
+                "texture"=>"纸质、壁画、纺织品、漆木器、其他",
+                "list"=>$this->_wave_abnormal(3)
+            );
+            $data['humidity'][] = array(
+                "texture"=>"混合材质",
+                "data"=>$this->_wave_abnormal(12)
+            );
+        }
+
+        $this->response($data);
+    }
+
+    protected function _wave_abnormal_by_time($param_id)
+    {
+        $data = [];
+        $mid = $this->mids[0];
+        $wave_abnormal = $wave_abnormal2 = array();
+        foreach ($this->date_compare as $date) {
+            $dep_data = $this->db
+                ->where("date", "D" . $date)
+                ->where("env_type", $this->env_type)
+                ->where("mid", $mid)
+                ->where("param", $param_id)
+                ->where("wave_status>", 0)
+                ->get("data_envtype_param")
+                ->result_array();
+            if ($dep_data) {
+                foreach (array(0, 1) as $type) {
+                    $dwa_datas = $this->db
+                        ->select("id,val,env_name,date")
+                        ->where("depid", $dep_data[0]['id'])
+                        ->where("type", $type)
+                        ->get("data_wave_abnormal")
+                        ->result_array();
+                    if ($type == 0) $wave_abnormal = $dwa_datas;
+                    else $wave_abnormal2 = $dwa_datas;
+                }
+            }
+            
+            $data[] = array(
+                "mid" => (string)$mid,
+                "name" => $this->museum[$mid],
+                "date" => $date,
+                "wave_abnormal" => $wave_abnormal,
+                "wave_abnormal2" => $wave_abnormal2
+            );
+        }
+
+        return $data;
+    }
+
+    public function wave_abnormal_by_time(){
+        if(count(array_filter($this->date_compare)) != 2) $this->response(array("error"=>"对比日期格式不正确！"));
+        $data['temperature'] = $this->_wave_abnormal_by_time(7);
+        if($this->env_type == "展厅"){
+            $data['humidity'] = $this->_wave_abnormal_by_time(10);
+        }else{
+            $data['humidity'][] = array(
+                "texture"=>"石质、陶器、瓷器",
+                "list"=>$this->_wave_abnormal_by_time(1)
+            );
+            $data['humidity'][] = array(
+                "texture"=>"铁质、青铜",
+                "list"=>$this->_wave_abnormal_by_time(2)
+            );
+            $data['humidity'][] = array(
+                "texture"=>"纸质、壁画、纺织品、漆木器、其他",
+                "list"=>$this->_wave_abnormal_by_time(3)
+            );
+            $data['humidity'][] = array(
+                "texture"=>"混合材质",
+                "data"=>$this->_wave_abnormal_by_time(12)
+            );
+        }
+
+        $this->response($data);
+    }
 
 }
