@@ -124,7 +124,7 @@ class Area extends MY_Controller{
         $rs = array();
         $rs["less"] = $rs["equal"] = $rs["more"] = 0;
         $rs["attention"] = array();
-        $rs["all"] = count($data);
+        $all = 0;
         $rs["standard"] = $calculate["standard"];
         $rs["average"] = $calculate["average"];
         if($type == "standard"){
@@ -133,7 +133,10 @@ class Area extends MY_Controller{
             $rs["max"] = $data?max($data)*1.1:0;
         }
         foreach ($data as $k => $value){
-            $value = $value?$value:0;
+            if(!$value){
+                continue;
+            }
+            $all ++;
             $rs["museum"][] = array("mid"=>$k,"name"=>$this->museum[$k],"data"=>$value,"distance"=>$value - $calculate["average"]);
             $z = $calculate["standard"]?($value - $calculate["average"]) / $calculate["standard"]:0;
             if($type == "standard" && $z < -2){
@@ -149,7 +152,7 @@ class Area extends MY_Controller{
                 $rs["more"] ++;
             }
         }
-
+        $rs["all"] = $all;
         return $rs;
     }
 
