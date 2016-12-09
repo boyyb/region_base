@@ -59,8 +59,8 @@ class Situation extends MY_Controller{
         return $date;
     }
 
-    //环形图-达标率
-    protected function pie_compliance_get(){
+    //达标率
+    protected function _pie_compliance(){
         $env = $this->env_type;
         $param = $this->env_param;
 
@@ -77,14 +77,14 @@ class Situation extends MY_Controller{
 
         //统计各博物馆达标率
         $dc_datas = $this->db
-            ->select("mid,".$sp)
+            ->select("distinct(mid),".$sp)
             ->where("date",$this->date)
             ->where("env_type",$env)
             ->get("data_complex")
             ->result_array();
-        if(!$dc_datas) $this->response(array()); //数据库无对应日期数据
+        if(!$dc_datas) $this->response(array("error"=>"没查询到数据！")); //数据库无对应日期数据
         $data = array_column($dc_datas,"standard_percent");//各博物馆达标率
-
+        if(count(array_filter($data)) == 0) $this->response(array("error"=>"没查询到数据！"));
         //达标率区间参数
         $sp = array(
             1=>array("name"=>"99.5%(含)~100%","min"=>0.995,"max"=>1.1),
@@ -110,7 +110,12 @@ class Situation extends MY_Controller{
         //$this->response($sp_data);
     }
 
-    //环形图-稳定性(温度湿度)
+    //接口调用-达标率
+    public function pie_compliance_get(){
+        $this->response($this->_pie_compliance());
+    }
+
+    //稳定性(温度湿度)
     protected function pie_stability(){
         $scatter = array();
         $env = $this->env_type;
@@ -134,11 +139,8 @@ class Situation extends MY_Controller{
             ->order_by("mid asc")
             ->get("data_complex")
             ->result_array();
-        if(!$dc_datas) {
-            $scatter['temperature'] = array();
-            $scatter['humidity'] = array();
-            return $scatter;
-        }
+        if(!$dc_datas) $this->response(array("error"=>"没查询到数据！"));
+
         //温湿度各博物馆的离散数据
         foreach($dc_datas as $v){
             $data["temperature_scatter"][] = $v["scatter_temperature"];
@@ -176,20 +178,24 @@ class Situation extends MY_Controller{
         return $scatter;
     }
 
-    //圆环图-温度稳定性
+    //温度稳定性
     public function pie_scatter_temperature_get(){
         $data = $this->pie_stability();
+        $list = array_column($data['temperature'],"value");
+        if(count(array_filter($list)) == 0) $this->response(array("error"=>"没查询到数据！"));
         $this->response($data['temperature']);
     }
 
-    //圆环图-湿度稳定性
+    //湿度稳定性
     public function pie_scatter_humidity_get(){
         $data = $this->pie_stability();
+        $list = array_column($data['humidity'],"value");
+        if(count(array_filter($list)) == 0) $this->response(array("error"=>"没查询到数据！"));
         $this->response($data['humidity']);
     }
     //圆环图-数据3合1
     public function pie(){
-        $data['compliance'] = $this->pie_compliance_get();
+        $data['compliance'] = $this->_pie_compliance();
         $data1 = $this->pie_stability();
         $data['temperature_scatter'] = $data1['temperature'];
         $data['humidity_scatter'] = $data1['humidity'];
