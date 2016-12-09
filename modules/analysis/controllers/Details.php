@@ -458,7 +458,7 @@ class Details extends MY_Controller{
                     else $wave_abnormal2 = $dwa_datas;
                 }
             }
-            
+
             $data[] = array(
                 "mid" => (string)$mid,
                 "name" => $this->museum[$mid],
