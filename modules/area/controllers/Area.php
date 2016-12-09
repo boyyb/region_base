@@ -40,7 +40,7 @@ class Area extends MY_Controller{
         foreach ($data_flag as $k => $value){
             $total = array_sum($value["total"]);
             $abnormal = array_sum($value["abnormal"]);
-            $data_standard[$k] = $total?round(($total - $abnormal) / $total,3):0;
+            $data_standard[$k] = $total?round(($total - $abnormal) / $total,4):0;
         }
 
         return $data_standard;
@@ -767,14 +767,19 @@ class Area extends MY_Controller{
         }
         $mid_arr = explode(",",$mids);
         $legend = array();
-        $indicator_compliance = array(
-            array("name"=>"全参数平均达标率","max"=>100),
-            array("name"=>"温度","max"=>100),
-            array("name"=>"湿度","max"=>100),
-            array("name"=>"光照","max"=>100),
-            array("name"=>"紫外","max"=>100),
-            array("name"=>"有机挥发物","max"=>100)
+        $indicator_compliance = array(array("name"=>"全参数平均达标率","max"=>100));
+        $indicator = array(
+            "temperature" => array("name"=>"温度","max"=>100),
+            "humidity" => array("name"=>"湿度","max"=>100),
+            "light" => array("name"=>"光照","max"=>100),
+            "uv" => array("name"=>"紫外","max"=>100),
+            "voc" => array("name"=>"有机挥发物","max"=>100)
         );
+        foreach ($this->env_param as $param){
+            if(array_key_exists($param,$indicator)){
+                $indicator_compliance[] = $indicator[$param];
+            }
+        }
         $datas = $this->depart_table($mid_arr);
         foreach ($mid_arr as $mid){
             if(array_key_exists($mid, $this->museum)){
@@ -791,14 +796,19 @@ class Area extends MY_Controller{
         }
         $mid_arr = explode(",",$mids);
         $legend = array();
-        $indicator_scatter = array(
-            array("name"=>"全参数平均离散系数","max"=>15),
-            array("name"=>"温度","max"=>15),
-            array("name"=>"湿度","max"=>15),
-            array("name"=>"光照","max"=>15),
-            array("name"=>"紫外","max"=>15),
-            array("name"=>"有机挥发物","max"=>15)
+        $indicator_scatter = array(array("name"=>"全参数平均离散系数","max"=>15));
+        $indicator = array(
+            "temperature" => array("name"=>"温度","max"=>15),
+            "humidity" => array("name"=>"湿度","max"=>15),
+            "light" => array("name"=>"光照","max"=>15),
+            "uv" => array("name"=>"紫外","max"=>15),
+            "voc" => array("name"=>"有机挥发物","max"=>15)
         );
+        foreach ($this->env_param as $param){
+            if(array_key_exists($param,$indicator)){
+                $indicator_scatter[] = $indicator[$param];
+            }
+        }
         $datas = $this->depart_table($mid_arr);
         foreach ($mid_arr as $mid){
             if(array_key_exists($mid, $this->museum)){
@@ -971,16 +981,27 @@ class Area extends MY_Controller{
             foreach ($data_complex as $item) {
                 if($item["mid"] == $mid){
                     $standard = $scatter = array();
-                    $standard[] = $item["temperature_total"]?round(($item["temperature_total"] - $item["temperature_abnormal"])/$item["temperature_total"])*100:0;
-                    $standard[] = $item["humidity_total"]?round(($item["humidity_total"] - $item["humidity_abnormal"])/$item["humidity_total"])*100:0;
-                    $standard[] = $item["light_total"]?round(($item["light_total"] - $item["light_abnormal"])/$item["light_total"])*100:0;
-                    $standard[] = $item["uv_total"]?round(($item["uv_total"] - $item["uv_abnormal"])/$item["uv_total"])*100:0;
-                    $standard[] = $item["voc_total"]?round(($item["voc_total"] - $item["voc_abnormal"])/$item["voc_total"])*100:0;
-                    $scatter[] = $item["scatter_temperature"]?$item["scatter_temperature"]*100:0;
-                    $scatter[] = $item["scatter_humidity"]?$item["scatter_humidity"]*100:0;
-                    $scatter[] = $item["scatter_light"]?$item["scatter_light"]*100:0;
-                    $scatter[] = $item["scatter_uv"]?$item["scatter_uv"]*100:0;
-                    $scatter[] = $item["scatter_voc"]?$item["scatter_voc"]*100:0;
+                    if(in_array("temperature",$this->env_param)){
+                        $standard[] = $item["temperature_total"]?round(($item["temperature_total"] - $item["temperature_abnormal"])/$item["temperature_total"])*100:0;
+                        $scatter[] = $item["scatter_temperature"]?$item["scatter_temperature"]*100:0;
+                    };
+                    if(in_array("humidity",$this->env_param)){
+                        $standard[] = $item["humidity_total"]?round(($item["humidity_total"] - $item["humidity_abnormal"])/$item["humidity_total"])*100:0;
+                        $scatter[] = $item["scatter_humidity"]?$item["scatter_humidity"]*100:0;
+                    }
+                    if(in_array("light",$this->env_param)){
+                        $standard[] = $item["light_total"]?round(($item["light_total"] - $item["light_abnormal"])/$item["light_total"])*100:0;
+                        $scatter[] = $item["scatter_light"]?$item["scatter_light"]*100:0;
+                    }
+                    if(in_array("uv",$this->env_param)){
+                        $standard[] = $item["uv_total"]?round(($item["uv_total"] - $item["uv_abnormal"])/$item["uv_total"])*100:0;
+                        $scatter[] = $item["scatter_uv"]?$item["scatter_uv"]*100:0;
+                    }
+                    if(in_array("voc",$this->env_param)){
+                        $standard[] = $item["voc_total"]?round(($item["voc_total"] - $item["voc_abnormal"])/$item["voc_total"])*100:0;
+                        $scatter[] = $item["scatter_voc"]?$item["scatter_voc"]*100:0;
+                    }
+
                     $average_standard = round(array_sum($standard)/sizeof($standard),2);
                     $average_scatter = round(array_sum($scatter)/sizeof($scatter),2);
                     array_unshift($standard,$average_standard);
