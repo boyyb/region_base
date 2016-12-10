@@ -532,8 +532,9 @@ class Area extends MY_Controller{
             }
 
             $texture_data[$item["param"]]["list"][] = $arr;
-
+            $texture_data[$item["param"]]["mids"][] = $item["mid"];
         }
+
         foreach ($texture_data as $param=>$value){
             if(array_key_exists($param, $arr_minmax)){
                 $texture_data[$param]["left"] = min($arr_minmax[$param]);//*0.9;
@@ -546,6 +547,29 @@ class Area extends MY_Controller{
         foreach ($texture as $k => $v){
             foreach ($v as $param => $tt){
                 $data = array_key_exists($k,$texture_data)?$texture_data[$k]:array();
+                $all_mids = array_keys($this->museum);
+                if($data && array_key_exists("mids",$data)){
+                    $diff = array_diff($all_mids,$data["mids"]);
+                }else{
+                    $diff = $all_mids;
+                }
+                foreach ($diff as $mid){
+                    $data["list"][] = array(
+                        "mid"=>$mid,
+                        "museum"=>$this->museum[$mid],
+                        "depid"=>0,
+                        "max"=>0,
+                        "min"=>0,
+                        "distance"=>0,
+                        "middle"=>0,
+                        "average"=>0,
+                        "count_abnormal"=>0,
+                        "standard"=>0,
+                        "compliance"=>0,
+                        "wave"=>array(),
+                        "wave_normal"=>array()
+                    );
+                }
                 $data["table"] = array_key_exists($k,$data_tables)?$data_tables[$k]:array();
                 $data["unit"] = $this->unit[$param];
                 if(!empty($tt)){
