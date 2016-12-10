@@ -31,7 +31,7 @@ $config["texture"] = array(
 
 $config["unit"] = array(
     "temperature"=>"°C",
-    "humidity"=>"RH/%",
+    "humidity"=>"%",
     "light"=>"Lx",
     "uv"=>"μw/cm²",
     "voc"=>"ppb"
