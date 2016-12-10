@@ -434,7 +434,7 @@ class Details extends MY_Controller{
 
     protected function _wave_abnormal_by_time($param_id)
     {
-        $data = [];
+        $data = array();
         $mid = $this->mids[0];
         $wave_abnormal = $wave_abnormal2 = array();
         foreach ($this->date_compare as $date) {
