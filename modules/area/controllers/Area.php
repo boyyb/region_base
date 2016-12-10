@@ -132,18 +132,20 @@ class Area extends MY_Controller{
         }elseif ($type == "scatter"){
             $rs["max"] = $data?max($data)*1.1:0;
         }
-        foreach ($data as $k => $value){
-            $value = $value?$value:0;
+        foreach ($this->museum as $k => $name){
+            $value = (array_key_exists($k,$data) && $data[$k])?$data[$k]:0;
+            $distance = 0;
             if($value){
                 $all ++;
+                $distance = $value - $calculate["average"];
+                $z = $calculate["standard"]?($value - $calculate["average"]) / $calculate["standard"]:0;
+                if($type == "standard" && $z < -2){
+                    $rs["attention"][] = $this->museum[$k];
+                }elseif ($type == "scatter" && $z > 2){
+                    $rs["attention"][] = $this->museum[$k];
+                }
             }
-            $rs["museum"][] = array("mid"=>$k,"name"=>$this->museum[$k],"data"=>$value,"distance"=>$value - $calculate["average"]);
-            $z = $calculate["standard"]?($value - $calculate["average"]) / $calculate["standard"]:0;
-            if($type == "standard" && $z < -2){
-                $rs["attention"][] = $this->museum[$k];
-            }elseif ($type == "scatter" && $z > 2){
-                $rs["attention"][] = $this->museum[$k];
-            }
+            $rs["museum"][] = array("mid"=>$k,"name"=>$name,"data"=>$value,"distance"=>$distance);
             if($value && $value < $calculate["average"]){
                 $rs["less"] ++;
             }elseif ($value && $value == $calculate["average"]){
@@ -770,26 +772,36 @@ class Area extends MY_Controller{
         }
         $mid_arr = explode(",",$mids);
         $legend = array();
-        $indicator_compliance = array(array("name"=>"全参数平均达标率","max"=>100));
-        $indicator = array(
-            "temperature" => array("name"=>"温度","max"=>100),
-            "humidity" => array("name"=>"湿度","max"=>100),
-            "light" => array("name"=>"光照","max"=>100),
-            "uv" => array("name"=>"紫外","max"=>100),
-            "voc" => array("name"=>"有机挥发物","max"=>100)
-        );
-        foreach ($this->env_param as $param){
-            if(array_key_exists($param,$indicator)){
-                $indicator_compliance[] = $indicator[$param];
-            }
-        }
-        $datas = $this->depart_table($mid_arr);
         foreach ($mid_arr as $mid){
             if(array_key_exists($mid, $this->museum)){
                 $legend[] = $this->museum[$mid];
             }
         }
-        $this->response(array("legend"=>$legend,"indicator"=>$indicator_compliance,"data"=>$datas["compliance"]));
+        if(sizeof($this->env_param) > 1){ //雷达图
+            $indicator_compliance = array(array("name"=>"全参数平均达标率","max"=>100));
+            $indicator = array(
+                "temperature" => array("name"=>"温度","max"=>100),
+                "humidity" => array("name"=>"湿度","max"=>100),
+                "light" => array("name"=>"光照","max"=>100),
+                "uv" => array("name"=>"紫外","max"=>100),
+                "voc" => array("name"=>"有机挥发物","max"=>100)
+            );
+            foreach ($this->env_param as $param){
+                if(array_key_exists($param,$indicator)){
+                    $indicator_compliance[] = $indicator[$param];
+                }
+            }
+            $datas = $this->depart_table($mid_arr);
+            $rs = array("legend"=>$legend,"indicator"=>$indicator_compliance,"data"=>$datas["compliance"]);
+        }else{ //柱状图
+            $params = config_item("params");
+            $ydata = array($params[$this->env_param[0]]);
+            $datas = $this->depart_table($mid_arr);
+            $rs = array("legend"=>$legend,"ydata"=>$ydata,"xdata"=>$datas["compliance"]);
+        }
+
+        $this->response($rs);
+
     }
 
     public function all_scatter_get(){ //离散系数 雷达图
@@ -799,26 +811,34 @@ class Area extends MY_Controller{
         }
         $mid_arr = explode(",",$mids);
         $legend = array();
-        $indicator_scatter = array(array("name"=>"全参数平均离散系数","max"=>15));
-        $indicator = array(
-            "temperature" => array("name"=>"温度","max"=>15),
-            "humidity" => array("name"=>"湿度","max"=>15),
-            "light" => array("name"=>"光照","max"=>15),
-            "uv" => array("name"=>"紫外","max"=>15),
-            "voc" => array("name"=>"有机挥发物","max"=>15)
-        );
-        foreach ($this->env_param as $param){
-            if(array_key_exists($param,$indicator)){
-                $indicator_scatter[] = $indicator[$param];
-            }
-        }
-        $datas = $this->depart_table($mid_arr);
         foreach ($mid_arr as $mid){
             if(array_key_exists($mid, $this->museum)){
                 $legend[] = $this->museum[$mid];
             }
         }
-        $this->response(array("legend"=>$legend,"indicator"=>$indicator_scatter,"data"=>$datas["scatter"]));
+        if(sizeof($this->env_param) > 1) { //雷达图
+            $indicator_scatter = array(array("name" => "全参数平均离散系数", "max" => 15));
+            $indicator = array(
+                "temperature" => array("name" => "温度", "max" => 15),
+                "humidity" => array("name" => "湿度", "max" => 15),
+                "light" => array("name" => "光照", "max" => 15),
+                "uv" => array("name" => "紫外", "max" => 15),
+                "voc" => array("name" => "有机挥发物", "max" => 15)
+            );
+            foreach ($this->env_param as $param) {
+                if (array_key_exists($param, $indicator)) {
+                    $indicator_scatter[] = $indicator[$param];
+                }
+            }
+            $datas = $this->depart_table($mid_arr);
+            $rs = array("legend"=>$legend,"indicator"=>$indicator_scatter,"data"=>$datas["scatter"]);
+        }else{
+            $params = config_item("params");
+            $ydata = array($params[$this->env_param[0]]);
+            $datas = $this->depart_table($mid_arr);
+            $rs = array("legend"=>$legend,"ydata"=>$ydata,"xdata"=>$datas["scatter"]);
+        }
+        $this->response($rs);
     }
 
     public function analysis_counts_get(){ //展柜数量获取
@@ -1004,11 +1024,12 @@ class Area extends MY_Controller{
                         $standard[] = $item["voc_total"]?round(($item["voc_total"] - $item["voc_abnormal"])/$item["voc_total"])*100:0;
                         $scatter[] = $item["scatter_voc"]?$item["scatter_voc"]*100:0;
                     }
-
-                    $average_standard = round(array_sum($standard)/sizeof($standard),2);
-                    $average_scatter = round(array_sum($scatter)/sizeof($scatter),2);
-                    array_unshift($standard,$average_standard);
-                    array_unshift($scatter,$average_scatter);
+                    if(sizeof($this->env_param) > 1){
+                        $average_standard = round(array_sum($standard)/sizeof($standard),2);
+                        $average_scatter = round(array_sum($scatter)/sizeof($scatter),2);
+                        array_unshift($standard,$average_standard);
+                        array_unshift($scatter,$average_scatter);
+                    }
                     $data["compliance"][] = array("name"=>$this->museum[$mid],"value"=>$standard);
                     $data["scatter"][] = array("name"=>$this->museum[$mid],"value"=>$scatter);
                     break;

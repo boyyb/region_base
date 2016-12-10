@@ -25,29 +25,55 @@ class Analysis extends MY_Controller{ //按时间对比
     }
     
     public function all_compliance_get(){ //达标率 雷达图
-        $indicator_compliance = array(
-            array("name"=>"全参数平均达标率","max"=>100),
-            array("name"=>"温度","max"=>100),
-            array("name"=>"湿度","max"=>100),
-            array("name"=>"光照","max"=>100),
-            array("name"=>"紫外","max"=>100),
-            array("name"=>"有机挥发物","max"=>100)
-        );
-        $datas = $this->depart_table();
-        $this->response(array("legend"=>$this->legend,"indicator"=>$indicator_compliance,"data"=>$datas["compliance"]));
+        if(sizeof($this->env_param) > 1) { //雷达图
+            $indicator_compliance = array(array("name"=>"全参数平均达标率","max"=>100));
+            $indicator = array(
+                "temperature" => array("name"=>"温度","max"=>100),
+                "humidity" => array("name"=>"湿度","max"=>100),
+                "light" => array("name"=>"光照","max"=>100),
+                "uv" => array("name"=>"紫外","max"=>100),
+                "voc" => array("name"=>"有机挥发物","max"=>100)
+            );
+            foreach ($this->env_param as $param){
+                if(array_key_exists($param,$indicator)){
+                    $indicator_compliance[] = $indicator[$param];
+                }
+            }
+            $datas = $this->depart_table();
+            $rs = array("legend" => $this->legend, "indicator" => $indicator_compliance, "data" => $datas["compliance"]);
+        }else{
+            $params = config_item("params");
+            $ydata = array($params[$this->env_param[0]]);
+            $datas = $this->depart_table();
+            $rs = array("legend"=>$this->legend,"ydata"=>$ydata,"xdata"=>$datas["compliance"]);
+        }
+        $this->response($rs);
     }
 
     public function all_scatter_get(){ //离散系数 雷达图
-        $indicator_scatter = array(
-            array("name"=>"全参数平均离散系数","max"=>15),
-            array("name"=>"温度","max"=>15),
-            array("name"=>"湿度","max"=>15),
-            array("name"=>"光照","max"=>15),
-            array("name"=>"紫外","max"=>15),
-            array("name"=>"有机挥发物","max"=>15)
-        );
-        $datas = $this->depart_table();
-        $this->response(array("legend"=>$this->legend,"indicator"=>$indicator_scatter,"data"=>$datas["scatter"]));
+        if(sizeof($this->env_param) > 1) { //雷达图
+            $indicator_scatter = array(array("name" => "全参数平均离散系数", "max" => 15));
+            $indicator = array(
+                "temperature" => array("name" => "温度", "max" => 15),
+                "humidity" => array("name" => "湿度", "max" => 15),
+                "light" => array("name" => "光照", "max" => 15),
+                "uv" => array("name" => "紫外", "max" => 15),
+                "voc" => array("name" => "有机挥发物", "max" => 15)
+            );
+            foreach ($this->env_param as $param) {
+                if (array_key_exists($param, $indicator)) {
+                    $indicator_scatter[] = $indicator[$param];
+                }
+            }
+            $datas = $this->depart_table();
+            $rs = array("legend"=>$this->legend,"indicator"=>$indicator_scatter,"data"=>$datas["scatter"]);
+        }else{
+            $params = config_item("params");
+            $ydata = array($params[$this->env_param[0]]);
+            $datas = $this->depart_table();
+            $rs = array("legend"=>$this->legend,"ydata"=>$ydata,"xdata"=>$datas["scatter"]);
+        }
+        $this->response($rs);
     }
 
     public function analysis_counts_get(){ //展柜数量获取
@@ -233,20 +259,32 @@ class Analysis extends MY_Controller{ //按时间对比
             foreach ($data_complex as $item) {
                 if($item["date"] == $date){
                     $standard = $scatter = array();
-                    $standard[] = $item["temperature_total"]?round(($item["temperature_total"] - $item["temperature_abnormal"])/$item["temperature_total"])*100:0;
-                    $standard[] = $item["humidity_total"]?round(($item["humidity_total"] - $item["humidity_abnormal"])/$item["humidity_total"])*100:0;
-                    $standard[] = $item["light_total"]?round(($item["light_total"] - $item["light_abnormal"])/$item["light_total"])*100:0;
-                    $standard[] = $item["uv_total"]?round(($item["uv_total"] - $item["uv_abnormal"])/$item["uv_total"])*100:0;
-                    $standard[] = $item["voc_total"]?round(($item["voc_total"] - $item["voc_abnormal"])/$item["voc_total"])*100:0;
-                    $scatter[] = $item["scatter_temperature"]?$item["scatter_temperature"]*100:0;
-                    $scatter[] = $item["scatter_humidity"]?$item["scatter_humidity"]*100:0;
-                    $scatter[] = $item["scatter_light"]?$item["scatter_light"]*100:0;
-                    $scatter[] = $item["scatter_uv"]?$item["scatter_uv"]*100:0;
-                    $scatter[] = $item["scatter_voc"]?$item["scatter_voc"]*100:0;
-                    $average_standard = round(array_sum($standard)/sizeof($standard),2);
-                    $average_scatter = round(array_sum($scatter)/sizeof($scatter),2);
-                    array_unshift($standard,$average_standard);
-                    array_unshift($scatter,$average_scatter);
+                    if(in_array("temperature",$this->env_param)){
+                        $standard[] = $item["temperature_total"]?round(($item["temperature_total"] - $item["temperature_abnormal"])/$item["temperature_total"])*100:0;
+                        $scatter[] = $item["scatter_temperature"]?$item["scatter_temperature"]*100:0;
+                    };
+                    if(in_array("humidity",$this->env_param)){
+                        $standard[] = $item["humidity_total"]?round(($item["humidity_total"] - $item["humidity_abnormal"])/$item["humidity_total"])*100:0;
+                        $scatter[] = $item["scatter_humidity"]?$item["scatter_humidity"]*100:0;
+                    }
+                    if(in_array("light",$this->env_param)){
+                        $standard[] = $item["light_total"]?round(($item["light_total"] - $item["light_abnormal"])/$item["light_total"])*100:0;
+                        $scatter[] = $item["scatter_light"]?$item["scatter_light"]*100:0;
+                    }
+                    if(in_array("uv",$this->env_param)){
+                        $standard[] = $item["uv_total"]?round(($item["uv_total"] - $item["uv_abnormal"])/$item["uv_total"])*100:0;
+                        $scatter[] = $item["scatter_uv"]?$item["scatter_uv"]*100:0;
+                    }
+                    if(in_array("voc",$this->env_param)){
+                        $standard[] = $item["voc_total"]?round(($item["voc_total"] - $item["voc_abnormal"])/$item["voc_total"])*100:0;
+                        $scatter[] = $item["scatter_voc"]?$item["scatter_voc"]*100:0;
+                    }
+                    if(sizeof($this->env_param) > 1) {
+                        $average_standard = round(array_sum($standard) / sizeof($standard), 2);
+                        $average_scatter = round(array_sum($scatter) / sizeof($scatter), 2);
+                        array_unshift($standard, $average_standard);
+                        array_unshift($scatter, $average_scatter);
+                    }
                     $date = substr($date,1,8);
                     $date = substr($date,0,4)."-".substr($date,4,2).'-'.substr($date,6,2);
                     $data["compliance"][] = array("name"=>$date,"value"=>$standard);
