@@ -557,17 +557,7 @@ class Area extends MY_Controller{
                     $data["list"][] = array(
                         "mid"=>$mid,
                         "museum"=>$this->museum[$mid],
-                        "depid"=>0,
-                        "max"=>0,
-                        "min"=>0,
-                        "distance"=>0,
-                        "middle"=>0,
-                        "average"=>0,
-                        "count_abnormal"=>0,
-                        "standard"=>0,
-                        "compliance"=>0,
-                        "wave"=>array(),
-                        "wave_normal"=>array()
+                        "empty"=>true
                     );
                 }
                 $data["table"] = array_key_exists($k,$data_tables)?$data_tables[$k]:array();
