@@ -36,3 +36,11 @@ $config["unit"] = array(
     "uv"=>"μw/cm²",
     "voc"=>"ppb"
 );
+
+$config["params"] = array(
+    "temperature" =>"温度",
+    "humidity" => "湿度",
+    "light" => "光照",
+    "uv" => "紫外",
+    "voc" => "有机挥发物"
+);
