@@ -84,26 +84,10 @@ class Details extends MY_Controller{
         foreach($datas as $mid=>$v){
             if(!$v) { //没有对应数据，相关统计数据全部置0
                 $data[] = array(
-                    "id"=>"0",
+                    "empty"=>true,
                     "mid"=>(string)$mid,
                     "name"=>$this->museum[$mid],
-                    "min"=>"0",
-                    "max"=>"0",
-                    "average"=>"0",
-                    "middle"=>"0",
-                    "distance"=>"0",
-                    "compliance"=>"0",
-                    "standard"=>"0",
-                    "count_abnormal"=>"0",
-                    "value_abnormal"=>"0",
-                    "wave_min"=>"0",
-                    "wave_max"=>"0",
-                    "wave_min2"=>"0",
-                    "wave_max2"=>"0",
-                    "wave_abnormal"=>"0",
-                    "wave_abnormal2"=>"0"
                 );
-
                 continue;
             }
             //异常值统计
