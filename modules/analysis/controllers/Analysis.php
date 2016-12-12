@@ -172,7 +172,7 @@ class Analysis extends MY_Controller{ //按时间对比
     
     public function analysis_temperature_get(){ //稳定性统计概况-温度
         $museum_temperature = array();
-        $x_temperature = array("0%~4%(含)","4%~6%(含)","6%~7%(含)",">7.5%");
+        $x_temperature = array("0%~4%(含)","4%~6%(含)","6%~7%(含)",">7%");
         $data_scatter = $this->data_scatter();
         $temperature = $data_scatter["scatter_temperature"];
         foreach ($this->dates as $date){
@@ -193,7 +193,7 @@ class Analysis extends MY_Controller{ //按时间对比
                 }else{
                     $data[] = 0;
                 }
-                if($temperature[$date]> 0.075){
+                if($temperature[$date]> 0.07){
                     $data[] = $temperature[$date]*100;
                 }else{
                     $data[] = 0;
@@ -208,7 +208,7 @@ class Analysis extends MY_Controller{ //按时间对比
 
     public function analysis_humidity_get(){ //稳定性统计概况-湿度
         $museum_humidity = array();
-        $x_humidity = array("0%~2%(含)","2%~3%(含)","3%~3.5%(含)",">4%");
+        $x_humidity = array("0%~2%(含)","2%~3%(含)","3%~3.5%(含)",">3.5%");
         $data_scatter = $this->data_scatter();
         $humidity = $data_scatter["scatter_humidity"];
         foreach ($this->dates as $date){
@@ -229,7 +229,7 @@ class Analysis extends MY_Controller{ //按时间对比
                 }else{
                     $data[] = 0;
                 }
-                if($humidity[$date]> 0.04){
+                if($humidity[$date]> 0.035){
                     $data[] = $humidity[$date]*100;
                 }else{
                     $data[] = 0;

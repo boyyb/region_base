@@ -923,7 +923,7 @@ class Area extends MY_Controller{
         }
         $museum_temperature = $legend = array();
         $mid_arr = explode(",",$mids);
-        $x_temperature = array("0%~4%(含)","4%~6%(含)","6%~7%(含)",">7.5%");
+        $x_temperature = array("0%~4%(含)","4%~6%(含)","6%~7%(含)",">7%");
         $data_scatter = $this->data_scatter();
         $temperature = $data_scatter["scatter_temperature"];
         foreach ($mid_arr as $mid){
@@ -944,7 +944,7 @@ class Area extends MY_Controller{
                 }else{
                     $data[] = 0;
                 }
-                if($temperature[$mid]> 0.075){
+                if($temperature[$mid]> 0.07){
                     $data[] = $temperature[$mid]*100;
                 }else{
                     $data[] = 0;
@@ -966,7 +966,7 @@ class Area extends MY_Controller{
         }
         $museum_humidity = $legend = array();
         $mid_arr = explode(",",$mids);
-        $x_humidity = array("0%~2%(含)","2%~3%(含)","3%~3.5%(含)",">4%");
+        $x_humidity = array("0%~2%(含)","2%~3%(含)","3%~3.5%(含)",">3.5%");
         $data_scatter = $this->data_scatter();
         $humidity = $data_scatter["scatter_humidity"];
         foreach ($mid_arr as $mid){
@@ -987,7 +987,7 @@ class Area extends MY_Controller{
                 }else{
                     $data[] = 0;
                 }
-                if($humidity[$mid]> 0.04){
+                if($humidity[$mid]> 0.035){
                     $data[] = $humidity[$mid]*100;
                 }else{
                     $data[] = 0;
