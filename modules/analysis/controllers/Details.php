@@ -182,47 +182,91 @@ class Details extends MY_Controller{
             $ret[$param]['unit'] = $this->unit[$param]; //环境参数单位
             if($param == "temperature"){
                 $ret["temperature"]['list'] = $this->_data(7);
+                $list_min = array_column($ret[$param]['list'],"min");
+                $list_max = array_column($ret[$param]['list'],"max");
+                $ret[$param]['left'] = min($list_min?$list_min:array(0));//左侧最小值
+                $ret[$param]['right'] = max($list_max?$list_max:array(0));//右侧最大值
             }elseif($param == "uv"){
                 $ret['uv']['list'] = $this->_data(8);
+                $list_min = array_column($ret[$param]['list'],"min");
+                $list_max = array_column($ret[$param]['list'],"max");
+                $ret[$param]['left'] = min($list_min?$list_min:array(0));
+                $ret[$param]['right'] = max($list_max?$list_max:array(0));
             }elseif($param == "voc"){
                 $ret['voc']['list'] = $this->_data(9);
+                $list_min = array_column($ret[$param]['list'],"min");
+                $list_max = array_column($ret[$param]['list'],"max");
+                $ret[$param]['left'] = min($list_min?$list_min:array(0));
+                $ret[$param]['right'] = max($list_max?$list_max:array(0));
             }elseif($param == "humidity" && $this->env_type != "展厅"){ // 展柜/库房要分材质
+                $list[0] = $this->_data(1);
+                $list[1] = $this->_data(2);
+                $list[2] = $this->_data(3);
+                $list[3] = $this->_data(12);
                 $ret['humidity']['data'][] = array(
                     "texture"=>"石质、陶器、瓷器",
-                    "list"=>$this->_data(1)
+                    "list"=>$list[0],
+                    "left"=>min(array_column($list[0],"min")?array_column($list[0],"min"):array(0)),
+                    "right"=>max(array_column($list[0],"max")?array_column($list[0],"max"):array(0))
                 );
                 $ret['humidity']['data'][] = array(
                     "texture"=>"铁质、青铜",
-                    "list"=>$this->_data(2)
+                    "list"=>$list[1],
+                    "left"=>min(array_column($list[1],"min")?array_column($list[1],"min"):array(0)),
+                    "right"=>max(array_column($list[1],"max")?array_column($list[1],"max"):array(0)),
                 );
                 $ret['humidity']['data'][] = array(
                     "texture"=>"纸质、壁画、纺织品、漆木器、其他",
-                    "list"=>$this->_data(3)
+                    "list"=>$list[2],
+                    "left"=>min(array_column($list[2],"min")?array_column($list[2],"min"):array(0)),
+                    "right"=>max(array_column($list[2],"max")?array_column($list[2],"max"):array(0)),
                 );
                 $ret['humidity']['data'][] = array(
                     "texture"=>"混合材质",
-                    "data"=>$this->_data(12)
+                    "list"=>$list[3],
+                    "left"=>min(array_column($list[3],"min")?array_column($list[3],"min"):array(0)),
+                    "right"=>max(array_column($list[3],"min")?array_column($list[3],"max"):array(0)),
                 );
             }elseif($param == "humidity" && $this->env_type == "展厅"){ //展厅不分材质
                 $ret['humidity']['list'] = $this->_data(10);
+                $list_min = array_column($ret[$param]['list'],"min");
+                $list_max = array_column($ret[$param]['list'],"max");
+                $ret[$param]['left'] = min($list_min?$list_min:array(0));
+                $ret[$param]['right'] = max($list_max?$list_max:array(0));
             }elseif($param == "light" && $this->env_type == "展厅"){ //展厅不分材质
                 $ret['light']['list'] = $this->_data(11);
+                $list_min = array_column($ret[$param]['list'],"min");
+                $list_max = array_column($ret[$param]['list'],"max");
+                $ret[$param]['left'] = min($list_min?$list_min:array(0));
+                $ret[$param]['right'] = max($list_max?$list_max:array(0));
             }elseif($param == "light" && $this->env_type != "展厅"){ //展柜库房分材质
+                $list[0] = $this->_data(4);
+                $list[1] = $this->_data(5);
+                $list[2] = $this->_data(6);
+                $list[3] = $this->_data(13);
                 $ret['light']['data'][] = array(
                     "texture"=>"石质、陶器、瓷器、铁质、青铜",
-                    "list"=>$this->_data(4)
+                    "list"=>$list[0],
+                    "left"=>min(array_column($list[0],"min")?array_column($list[0],"min"):array(0)),
+                    "right"=>max(array_column($list[0],"max")?array_column($list[0],"max"):array(0)),
                 );
                 $ret['light']['data'][] = array(
                     "texture"=>"纸质、壁画、纺织品",
-                    "list"=>$this->_data(5)
+                    "list"=>$list[1],
+                    "left"=>min(array_column($list[1],"min")?array_column($list[1],"min"):array(0)),
+                    "right"=>max(array_column($list[1],"max")?array_column($list[1],"max"):array(0)),
                 );
                 $ret['light']['data'][] = array(
                     "texture"=>"漆木器、其他",
-                    "list"=>$this->_data(6)
+                    "list"=>$list[2],
+                    "left"=>min(array_column($list[2],"min")?array_column($list[2],"min"):array(0)),
+                    "right"=>max(array_column($list[2],"max")?array_column($list[2],"max"):array(0)),
                 );
                 $ret['light']['data'][] = array(
                     "texture"=>"混合材质",
-                    "list"=>$this->_data(13)
+                    "list"=>$list[3],
+                    "left"=>min(array_column($list[3],"min")?array_column($list[3],"min"):array(0)),
+                    "right"=>max(array_column($list[3],"max")?array_column($list[3],"max"):array(0)),
                 );
             }
         }
