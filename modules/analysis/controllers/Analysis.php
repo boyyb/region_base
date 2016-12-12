@@ -25,6 +25,7 @@ class Analysis extends MY_Controller{ //按时间对比
     }
     
     public function all_compliance_get(){ //达标率 雷达图
+        $datas = $this->depart_table();
         if(sizeof($this->env_param) > 1) { //雷达图
             $indicator_compliance = array(array("name"=>"全参数平均达标率","max"=>100));
             $indicator = array(
@@ -39,18 +40,17 @@ class Analysis extends MY_Controller{ //按时间对比
                     $indicator_compliance[] = $indicator[$param];
                 }
             }
-            $datas = $this->depart_table();
             $rs = array("legend" => $this->legend, "indicator" => $indicator_compliance, "data" => $datas["compliance"]);
         }else{
             $params = config_item("params");
             $ydata = array($params[$this->env_param[0]]);
-            $datas = $this->depart_table();
             $rs = array("legend"=>$this->legend,"ydata"=>$ydata,"xdata"=>$datas["compliance"]);
         }
         $this->response($rs);
     }
 
     public function all_scatter_get(){ //离散系数 雷达图
+        $datas = $this->depart_table();
         if(sizeof($this->env_param) > 1) { //雷达图
             $indicator_scatter = array(array("name" => "全参数平均离散系数", "max" => 15));
             $indicator = array(
@@ -65,12 +65,10 @@ class Analysis extends MY_Controller{ //按时间对比
                     $indicator_scatter[] = $indicator[$param];
                 }
             }
-            $datas = $this->depart_table();
             $rs = array("legend"=>$this->legend,"indicator"=>$indicator_scatter,"data"=>$datas["scatter"]);
         }else{
             $params = config_item("params");
             $ydata = array($params[$this->env_param[0]]);
-            $datas = $this->depart_table();
             $rs = array("legend"=>$this->legend,"ydata"=>$ydata,"xdata"=>$datas["scatter"]);
         }
         $this->response($rs);
@@ -245,6 +243,7 @@ class Analysis extends MY_Controller{ //按时间对比
     }
 
     private function depart_table(){
+        $dates_exist = array();
         $data = array(
             "compliance"=>array(),
             "scatter"=>array()
@@ -258,6 +257,7 @@ class Analysis extends MY_Controller{ //按时间对比
         foreach ($this->dates as $date){
             foreach ($data_complex as $item) {
                 if($item["date"] == $date){
+                    $dates_exist[] = $date;
                     $standard = $scatter = array();
                     if(in_array("temperature",$this->env_param)){
                         $standard[] = $item["temperature_total"]?round(($item["temperature_total"] - $item["temperature_abnormal"])/$item["temperature_total"])*100:0;
@@ -292,6 +292,22 @@ class Analysis extends MY_Controller{ //按时间对比
                     break;
                 }
             }
+        }
+
+        $diff = array_diff($this->dates,$dates_exist);
+        if(sizeof($this->env_param) > 1){
+            $values = array();
+            foreach ($this->env_param as $p){
+                $values[] = 0;
+            }
+            $values[] = 0;
+        }else{
+            $values[] = 0;
+        }
+        foreach ($diff as $date){
+            $date = substr($date,1,8);
+            $date = substr($date,0,4)."-".substr($date,4,2).'-'.substr($date,6,2);
+            $data["compliance"][] =  $data["scatter"][] = array("name"=>$date,"value"=>$values);
         }
         return $data;
 

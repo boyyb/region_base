@@ -1003,6 +1003,7 @@ class Area extends MY_Controller{
     }
 
     private function depart_table($mid_arr = array()){
+        $mids_exist = array();
         $data = array(
             "compliance"=>array(),
             "scatter"=>array()
@@ -1017,6 +1018,7 @@ class Area extends MY_Controller{
         foreach ($mid_arr as $mid){
             foreach ($data_complex as $item) {
                 if($item["mid"] == $mid){
+                    $mids_exist[] = $mid;
                     $standard = $scatter = array();
                     if(in_array("temperature",$this->env_param)){
                         $standard[] = $item["temperature_total"]?round(($item["temperature_total"] - $item["temperature_abnormal"])/$item["temperature_total"])*100:0;
@@ -1049,6 +1051,19 @@ class Area extends MY_Controller{
                     break;
                 }
             }
+        }
+        $diff = array_diff($mid_arr,$mids_exist);
+        if(sizeof($this->env_param) > 1){
+            $values = array();
+            foreach ($this->env_param as $p){
+                $values[] = 0;
+            }
+            $values[] = 0;
+        }else{
+            $values[] = 0;
+        }
+        foreach ($diff as $value){
+            $data["compliance"][] =  $data["scatter"][] = array("name"=>$this->museum[$value],"value"=>$values);
         }
         return $data;
 
