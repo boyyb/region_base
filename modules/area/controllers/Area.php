@@ -1021,23 +1021,23 @@ class Area extends MY_Controller{
                     $mids_exist[] = $mid;
                     $standard = $scatter = array();
                     if(in_array("temperature",$this->env_param)){
-                        $standard[] = $item["temperature_total"]?round(($item["temperature_total"] - $item["temperature_abnormal"])/$item["temperature_total"])*100:0;
+                        $standard[] = $item["temperature_total"]?round(($item["temperature_total"] - $item["temperature_abnormal"])/$item["temperature_total"],4)*100:0;
                         $scatter[] = $item["scatter_temperature"]?$item["scatter_temperature"]*100:0;
                     };
                     if(in_array("humidity",$this->env_param)){
-                        $standard[] = $item["humidity_total"]?round(($item["humidity_total"] - $item["humidity_abnormal"])/$item["humidity_total"])*100:0;
+                        $standard[] = $item["humidity_total"]?round(($item["humidity_total"] - $item["humidity_abnormal"])/$item["humidity_total"],4)*100:0;
                         $scatter[] = $item["scatter_humidity"]?$item["scatter_humidity"]*100:0;
                     }
                     if(in_array("light",$this->env_param)){
-                        $standard[] = $item["light_total"]?round(($item["light_total"] - $item["light_abnormal"])/$item["light_total"])*100:0;
+                        $standard[] = $item["light_total"]?round(($item["light_total"] - $item["light_abnormal"])/$item["light_total"],4)*100:0;
                         $scatter[] = $item["scatter_light"]?$item["scatter_light"]*100:0;
                     }
                     if(in_array("uv",$this->env_param)){
-                        $standard[] = $item["uv_total"]?round(($item["uv_total"] - $item["uv_abnormal"])/$item["uv_total"])*100:0;
+                        $standard[] = $item["uv_total"]?round(($item["uv_total"] - $item["uv_abnormal"])/$item["uv_total"],4)*100:0;
                         $scatter[] = $item["scatter_uv"]?$item["scatter_uv"]*100:0;
                     }
                     if(in_array("voc",$this->env_param)){
-                        $standard[] = $item["voc_total"]?round(($item["voc_total"] - $item["voc_abnormal"])/$item["voc_total"])*100:0;
+                        $standard[] = $item["voc_total"]?round(($item["voc_total"] - $item["voc_abnormal"])/$item["voc_total"],4)*100:0;
                         $scatter[] = $item["scatter_voc"]?$item["scatter_voc"]*100:0;
                     }
                     if(sizeof($this->env_param) > 1){
