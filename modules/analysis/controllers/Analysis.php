@@ -35,9 +35,9 @@ class Analysis extends MY_Controller{ //按时间对比
                 "uv" => array("name"=>"紫外","max"=>100),
                 "voc" => array("name"=>"有机挥发物","max"=>100)
             );
-            foreach ($this->env_param as $param){
-                if(array_key_exists($param,$indicator)){
-                    $indicator_compliance[] = $indicator[$param];
+            foreach ($indicator as $param => $value) {
+                if (in_array($param,$this->env_param)) {
+                    $indicator_compliance[] = $value;
                 }
             }
             $rs = array("legend" => $this->legend, "indicator" => $indicator_compliance, "data" => $datas["compliance"]);
@@ -60,9 +60,9 @@ class Analysis extends MY_Controller{ //按时间对比
                 "uv" => array("name" => "紫外", "max" => 15),
                 "voc" => array("name" => "有机挥发物", "max" => 15)
             );
-            foreach ($this->env_param as $param) {
-                if (array_key_exists($param, $indicator)) {
-                    $indicator_scatter[] = $indicator[$param];
+            foreach ($indicator as $param => $value) {
+                if (in_array($param,$this->env_param)) {
+                    $indicator_scatter[] = $value;
                 }
             }
             $rs = array("legend"=>$this->legend,"indicator"=>$indicator_scatter,"data"=>$datas["scatter"]);

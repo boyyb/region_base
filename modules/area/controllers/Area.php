@@ -800,9 +800,9 @@ class Area extends MY_Controller{
                 "uv" => array("name"=>"紫外","max"=>100),
                 "voc" => array("name"=>"有机挥发物","max"=>100)
             );
-            foreach ($this->env_param as $param){
-                if(array_key_exists($param,$indicator)){
-                    $indicator_compliance[] = $indicator[$param];
+            foreach ($indicator as $param => $value) {
+                if (in_array($param,$this->env_param)) {
+                    $indicator_compliance[] = $value;
                 }
             }
             $datas = $this->depart_table($mid_arr);
