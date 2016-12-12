@@ -16,7 +16,7 @@ class Analysis extends MY_Controller{ //按时间对比
         parent::__construct();
         $this->btime = $this->get("btime");
         $this->etime = $this->get("etime");
-        $this->mid = $this->get("mid");
+        $this->mid = $this->get("mids");
         if(!$this->mid || !$this->btime || !$this->etime){
             $this->response(array("error"=>"缺少必要参数"));
         }
