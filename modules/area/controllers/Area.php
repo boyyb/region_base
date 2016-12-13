@@ -46,6 +46,34 @@ class Area extends MY_Controller{
         return $data_standard;
     }
 
+    private function detail_standard_env(){ //对比分析-达标率
+        $params = '';
+        $data_standard = array();
+        foreach ($this->env_param as $param){
+            $params .= ",c.".$param."_total".",c.".$param."_abnormal";
+        }
+        $data_compliance = $this->db->select("m.id,c.id as cid".$params)
+            ->join("data_complex_env c","c.mid=m.id")
+            ->where("c.env_type",$this->env_type)
+            ->where("c.date",$this->date)
+            ->get("museum m")
+            ->result_array();
+        //echo $this->db->last_query();exit;
+        foreach ($data_compliance as $value){
+            if($value["id"]){
+                $abnormal_count = $total_count = 0;
+                foreach ($this->env_param as $param){
+                    $abnormal_count += $value[$param."_abnormal"];
+                    $total_count += $value[$param."_total"];
+                }
+                $data_standard[$value["id"]][] = $total_count?round(($total_count - $abnormal_count) / $total_count,4):0;;
+            }
+        }
+
+
+        return $data_standard;
+    }
+
     private function data_scatter(){
         $data = $this->db->select("c.mid,c.scatter_temperature,c.scatter_humidity")
             ->join("museum m","m.id=c.mid")
@@ -872,7 +900,7 @@ class Area extends MY_Controller{
         }
         foreach ($mid_arr as $mid){
             if(array_key_exists($mid, $counts_arr)){
-                $counts_rs[] = array("name"=>$this->museum[$mid],"count"=>$counts_arr[$mid]);//展柜数量
+                $counts_rs[] = array("name"=>$this->museum[$mid],"count"=>$counts_arr[$mid]);//环境数量
             }
         }
         $this->response($counts_rs);
@@ -886,29 +914,33 @@ class Area extends MY_Controller{
         $museum_standard = $legend = array();
         $mid_arr = explode(",",$mids);
         $x_standard = array("99.5%(含)~100%","99%(含)~99.5%","95%(含)~99%","<95%");
-        $data_standard = $this->detail_standard();
+        $data_standard = $this->detail_standard_env();
         foreach ($mid_arr as $mid){
             if(array_key_exists($mid, $data_standard)){
-                $data = array();//达标率柱状图数据
-                if($data_standard[$mid] >= 0.995 && $data_standard[$mid]<= 1){
-                    $data[] = $data_standard[$mid]*100;
-                }else{
-                    $data[] = 0;
+                $data = array();
+                $count_all = $count1 = $count2 = $count3 = $count4 = 0;//达标率柱状图数据
+                foreach ($data_standard[$mid] as $value){
+                    if($value >= 0.995 && $value<= 1){
+                        $count1 ++;
+                    }
+                    if($value >= 0.99 && $value< 0.995){
+                        $count2 ++;
+                    }
+                    if($value >= 0.95 && $value< 0.99){
+                        $count3 ++;
+                    }
+                    if($value< 0.95){
+                        $count4 ++;
+                    }
+                    $count_all ++;
                 }
-                if($data_standard[$mid] >= 0.99 && $data_standard[$mid]< 0.995){
-                    $data[] = $data_standard[$mid]*100;
+                if ($count_all) {
+                    $data[] = round(($count1 / $count_all),4)*100;
+                    $data[] = round(($count2 / $count_all),4)*100;
+                    $data[] = round(($count3 / $count_all),4)*100;
+                    $data[] = round(($count4 / $count_all),4)*100;
                 }else{
-                    $data[] = 0;
-                }
-                if($data_standard[$mid] >= 0.95 && $data_standard[$mid]< 0.99){
-                    $data[] = $data_standard[$mid]*100;
-                }else{
-                    $data[] = 0;
-                }
-                if($data_standard[$mid]< 0.95){
-                    $data[] = $data_standard[$mid]*100;
-                }else{
-                    $data[] = 0;
+                    $data = array(0,0,0,0);
                 }
                 $museum_standard[] = array("name"=>$this->museum[$mid],"data"=>$data);
             }
