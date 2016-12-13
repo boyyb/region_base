@@ -8,8 +8,6 @@ class Situation extends MY_Controller{
 
     function __construct(){
         parent::__construct();
-        if(!$this->get("env_type") || !$this->get("definite_time") || !$this->get("env_param"))
-            $this->response(array("error"=>"缺少必要参数！"));
         $date_str = $this->get("definite_time");
         switch ($date_str){
             case "yesterday": //昨天
@@ -324,10 +322,13 @@ class Situation extends MY_Controller{
 
     //地图-博物馆按时间对比
     public function map_by_time_get(){
-        $date_compare = explode(",",$this->get("definite_time")); //对比时间
-        if(count(array_filter($date_compare)) != 2) $this->response(array("error"=>"对比日期格式不正确！"));
-        $mids =  explode(",",$this->get("mids"));
-        $mid = $mids[0];
+        if(!$this->get("mid") || !$this->get("btime") || !$this->get("etime"))
+            $this->response(array("error"=>"缺少必要参数！"));
+        if(!$this->get("env_type") || !$this->get("env_param"))
+            $this->response(array("error"=>"缺少必要参数！"));
+        $mid = $this->get("mid");
+        if(!is_numeric($mid)) $this->response(array("error"=>"博物馆id格式错误！"));
+        $date_compare = array($this->get("btime"),$this->get("etime")); //对比时间
         $env = $this->env_type;
         $param = $this->env_param;
         $params = array();//环境参数编号
@@ -377,7 +378,6 @@ class Situation extends MY_Controller{
                 );
             }
         }
-
 
         //统计单个博物馆日波动(温度/湿度)超标情况 不剔除异常值
         $wave_data = array();
@@ -452,7 +452,6 @@ class Situation extends MY_Controller{
         );
 
         $this->response($map_data);
-
     }
 
 }

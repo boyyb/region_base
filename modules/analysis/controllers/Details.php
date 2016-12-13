@@ -6,12 +6,9 @@ class Details extends MY_Controller{
     protected $date_start = null; //日波动统计开始日期
     protected $date_end = null; //日波动统计结束日期
     protected $date_list = array(); //日波动日期列表
-    protected $date_compare = array(); //单博物馆对比日期
 
     function __construct(){
         parent::__construct();
-        if(!$this->get("env_type") || !$this->get("definite_time") || !$this->get("env_param") || !$this->get("mids"))
-            $this->response(array("error"=>"缺少必要参数！"));
         $date_str = $this->get("definite_time");
         switch ($date_str){
             case "yesterday": //昨天
@@ -44,12 +41,10 @@ class Details extends MY_Controller{
                     $this->date = "M".date("Ym");
                 }
                 break;
-            case is_numeric($date_str) && strlen($date_str)==8 : //指定具体某一天
+            default: //指定具体某一天
                 $this->date = "D".$date_str; //某一天
                 $this->date_start = $this->date_end = $date_str;
-                break;
-            default: //单博物馆对比日期
-                $this->date_compare = explode(",",$date_str);
+
         }
 
         $this->mids = explode(",",$this->get("mids")); //mids=2,3,4
@@ -177,7 +172,9 @@ class Details extends MY_Controller{
     }
 
     //数据调用-多博物馆对比-new
-    public function data_new_get(){
+    public function data_get(){
+        if(!$this->get("env_type") || !$this->get("definite_time") || !$this->get("env_param") || !$this->get("mids"))
+            $this->response(array("error"=>"缺少必要参数！"));
         $param_list = array(
             "temperature"=>7,
             "uv"=>8,
@@ -236,7 +233,7 @@ class Details extends MY_Controller{
 
 
     //数据调用-多博物馆对比-old
-    public function data_get(){
+    /*public function data_get(){
         foreach($this->env_param as $param){
             $ret[$param]['unit'] = $this->unit[$param]; //环境参数单位
             if($param == "temperature"){
@@ -331,15 +328,16 @@ class Details extends MY_Controller{
         }
 
         $this->response($ret);
-    }
+    }*/
 
     //数据统计-单博物馆按时间对比
     protected function _data_by_time($param_id){
         $data = array();
-        $mid = $this->mids[0];
+        $mid = $this->get("mid");
+        $date_compare = array($this->get("btime"),$this->get("etime"));
 
         //各博物馆均值、极差、标准差、异常值、达标率...
-        foreach($this->date_compare as $date){
+        foreach($date_compare as $date){
             $dep_datas = $this->db
                 ->where("date","D{$date}")
                 ->where("env_type",$this->env_type)
@@ -356,6 +354,7 @@ class Details extends MY_Controller{
                     "empty"=>true,
                     "mid"=>(string)$mid,
                     "name"=>$this->museum[$mid],
+                    "date"=>(string)$date
                 );
                 continue;
             }
@@ -418,7 +417,7 @@ class Details extends MY_Controller{
     }
 
     //数据调用-单个博物馆按时间对比-old
-    public function data_by_time_get(){
+    /*public function data_by_time_get(){
         if(count(array_filter($this->date_compare)) != 2) $this->response(array("error"=>"对比日期格式不正确！"));
         foreach($this->env_param as $param){
             $ret[$param]['unit'] = $this->unit[$param]; //环境参数单位
@@ -514,11 +513,15 @@ class Details extends MY_Controller{
         }
 
         $this->response($ret);
-    }
+    }*/
 
     //数据调用-单个博物馆按时间对比-new
-    public function data_by_time_new_get(){
-        if(count(array_filter($this->date_compare)) != 2) $this->response(array("error"=>"对比日期格式不正确！"));
+    public function data_by_time_get(){
+        if(!$this->get("mid") || !$this->get("btime") || !$this->get("etime"))
+            $this->response(array("error"=>"缺少必要参数！"));
+        if(!$this->get("env_type") || !$this->get("env_param"))
+            $this->response(array("error"=>"缺少必要参数！"));
+        if(!is_numeric($this->get("mid"))) $this->response(array("error"=>"博物馆id格式错误！"));
         $param_list = array(
             "temperature"=>7,
             "uv"=>8,
@@ -529,7 +532,8 @@ class Details extends MY_Controller{
                     1=>"石质、陶器、瓷器",
                     2=>"铁质、青铜",
                     3=>"纸质、壁画、纺织品、漆木器、其他",
-                    12=>"混合材质"),
+                    12=>"混合材质"
+                )
             ),
             "light"=>array(
                 "hall"=>11,
@@ -537,7 +541,8 @@ class Details extends MY_Controller{
                     4=>"石质、陶器、瓷器、铁质、青铜",
                     5=>"纸质、壁画、纺织品",
                     6=>"漆木器、其他",
-                    13=>"混合材质"),
+                    13=>"混合材质"
+                )
             )
         );
         $data = array();
