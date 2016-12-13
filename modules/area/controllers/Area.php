@@ -800,9 +800,9 @@ class Area extends MY_Controller{
                 "uv" => array("name"=>"紫外","max"=>100),
                 "voc" => array("name"=>"有机挥发物","max"=>100)
             );
-            foreach ($this->env_param as $param){
-                if(array_key_exists($param,$indicator)){
-                    $indicator_compliance[] = $indicator[$param];
+            foreach ($indicator as $param => $value) {
+                if (in_array($param,$this->env_param)) {
+                    $indicator_compliance[] = $value;
                 }
             }
             $datas = $this->depart_table($mid_arr);
@@ -839,9 +839,9 @@ class Area extends MY_Controller{
                 "uv" => array("name" => "紫外", "max" => 15),
                 "voc" => array("name" => "有机挥发物", "max" => 15)
             );
-            foreach ($this->env_param as $param) {
-                if (array_key_exists($param, $indicator)) {
-                    $indicator_scatter[] = $indicator[$param];
+            foreach ($indicator as $param => $value) {
+                if (in_array($param,$this->env_param)) {
+                    $indicator_scatter[] = $value;
                 }
             }
             $datas = $this->depart_table($mid_arr);
@@ -923,7 +923,7 @@ class Area extends MY_Controller{
         }
         $museum_temperature = $legend = array();
         $mid_arr = explode(",",$mids);
-        $x_temperature = array("0%~4%(含)","4%~6%(含)","6%~7%(含)",">7.5%");
+        $x_temperature = array("0%~4%(含)","4%~6%(含)","6%~7%(含)",">7%");
         $data_scatter = $this->data_scatter();
         $temperature = $data_scatter["scatter_temperature"];
         foreach ($mid_arr as $mid){
@@ -944,7 +944,7 @@ class Area extends MY_Controller{
                 }else{
                     $data[] = 0;
                 }
-                if($temperature[$mid]> 0.075){
+                if($temperature[$mid]> 0.07){
                     $data[] = $temperature[$mid]*100;
                 }else{
                     $data[] = 0;
@@ -966,7 +966,7 @@ class Area extends MY_Controller{
         }
         $museum_humidity = $legend = array();
         $mid_arr = explode(",",$mids);
-        $x_humidity = array("0%~2%(含)","2%~3%(含)","3%~3.5%(含)",">4%");
+        $x_humidity = array("0%~2%(含)","2%~3%(含)","3%~3.5%(含)",">3.5%");
         $data_scatter = $this->data_scatter();
         $humidity = $data_scatter["scatter_humidity"];
         foreach ($mid_arr as $mid){
@@ -987,7 +987,7 @@ class Area extends MY_Controller{
                 }else{
                     $data[] = 0;
                 }
-                if($humidity[$mid]> 0.04){
+                if($humidity[$mid]> 0.035){
                     $data[] = $humidity[$mid]*100;
                 }else{
                     $data[] = 0;
@@ -1003,6 +1003,7 @@ class Area extends MY_Controller{
     }
 
     private function depart_table($mid_arr = array()){
+        $mids_exist = array();
         $data = array(
             "compliance"=>array(),
             "scatter"=>array()
@@ -1017,25 +1018,26 @@ class Area extends MY_Controller{
         foreach ($mid_arr as $mid){
             foreach ($data_complex as $item) {
                 if($item["mid"] == $mid){
+                    $mids_exist[] = $mid;
                     $standard = $scatter = array();
                     if(in_array("temperature",$this->env_param)){
-                        $standard[] = $item["temperature_total"]?round(($item["temperature_total"] - $item["temperature_abnormal"])/$item["temperature_total"])*100:0;
+                        $standard[] = $item["temperature_total"]?round(($item["temperature_total"] - $item["temperature_abnormal"])/$item["temperature_total"],4)*100:0;
                         $scatter[] = $item["scatter_temperature"]?$item["scatter_temperature"]*100:0;
                     };
                     if(in_array("humidity",$this->env_param)){
-                        $standard[] = $item["humidity_total"]?round(($item["humidity_total"] - $item["humidity_abnormal"])/$item["humidity_total"])*100:0;
+                        $standard[] = $item["humidity_total"]?round(($item["humidity_total"] - $item["humidity_abnormal"])/$item["humidity_total"],4)*100:0;
                         $scatter[] = $item["scatter_humidity"]?$item["scatter_humidity"]*100:0;
                     }
                     if(in_array("light",$this->env_param)){
-                        $standard[] = $item["light_total"]?round(($item["light_total"] - $item["light_abnormal"])/$item["light_total"])*100:0;
+                        $standard[] = $item["light_total"]?round(($item["light_total"] - $item["light_abnormal"])/$item["light_total"],4)*100:0;
                         $scatter[] = $item["scatter_light"]?$item["scatter_light"]*100:0;
                     }
                     if(in_array("uv",$this->env_param)){
-                        $standard[] = $item["uv_total"]?round(($item["uv_total"] - $item["uv_abnormal"])/$item["uv_total"])*100:0;
+                        $standard[] = $item["uv_total"]?round(($item["uv_total"] - $item["uv_abnormal"])/$item["uv_total"],4)*100:0;
                         $scatter[] = $item["scatter_uv"]?$item["scatter_uv"]*100:0;
                     }
                     if(in_array("voc",$this->env_param)){
-                        $standard[] = $item["voc_total"]?round(($item["voc_total"] - $item["voc_abnormal"])/$item["voc_total"])*100:0;
+                        $standard[] = $item["voc_total"]?round(($item["voc_total"] - $item["voc_abnormal"])/$item["voc_total"],4)*100:0;
                         $scatter[] = $item["scatter_voc"]?$item["scatter_voc"]*100:0;
                     }
                     if(sizeof($this->env_param) > 1){
@@ -1049,6 +1051,19 @@ class Area extends MY_Controller{
                     break;
                 }
             }
+        }
+        $diff = array_diff($mid_arr,$mids_exist);
+        if(sizeof($this->env_param) > 1){
+            $values = array();
+            foreach ($this->env_param as $p){
+                $values[] = 0;
+            }
+            $values[] = 0;
+        }else{
+            $values[] = 0;
+        }
+        foreach ($diff as $value){
+            $data["compliance"][] =  $data["scatter"][] = array("name"=>$this->museum[$value],"value"=>$values);
         }
         return $data;
 

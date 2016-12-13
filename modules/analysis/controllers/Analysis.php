@@ -16,7 +16,7 @@ class Analysis extends MY_Controller{ //按时间对比
         parent::__construct();
         $this->btime = $this->get("btime");
         $this->etime = $this->get("etime");
-        $this->mid = $this->get("mid");
+        $this->mid = $this->get("mids");
         if(!$this->mid || !$this->btime || !$this->etime){
             $this->response(array("error"=>"缺少必要参数"));
         }
@@ -25,6 +25,7 @@ class Analysis extends MY_Controller{ //按时间对比
     }
     
     public function all_compliance_get(){ //达标率 雷达图
+        $datas = $this->depart_table();
         if(sizeof($this->env_param) > 1) { //雷达图
             $indicator_compliance = array(array("name"=>"全参数平均达标率","max"=>100));
             $indicator = array(
@@ -34,23 +35,22 @@ class Analysis extends MY_Controller{ //按时间对比
                 "uv" => array("name"=>"紫外","max"=>100),
                 "voc" => array("name"=>"有机挥发物","max"=>100)
             );
-            foreach ($this->env_param as $param){
-                if(array_key_exists($param,$indicator)){
-                    $indicator_compliance[] = $indicator[$param];
+            foreach ($indicator as $param => $value) {
+                if (in_array($param,$this->env_param)) {
+                    $indicator_compliance[] = $value;
                 }
             }
-            $datas = $this->depart_table();
             $rs = array("legend" => $this->legend, "indicator" => $indicator_compliance, "data" => $datas["compliance"]);
         }else{
             $params = config_item("params");
             $ydata = array($params[$this->env_param[0]]);
-            $datas = $this->depart_table();
             $rs = array("legend"=>$this->legend,"ydata"=>$ydata,"xdata"=>$datas["compliance"]);
         }
         $this->response($rs);
     }
 
     public function all_scatter_get(){ //离散系数 雷达图
+        $datas = $this->depart_table();
         if(sizeof($this->env_param) > 1) { //雷达图
             $indicator_scatter = array(array("name" => "全参数平均离散系数", "max" => 15));
             $indicator = array(
@@ -60,17 +60,15 @@ class Analysis extends MY_Controller{ //按时间对比
                 "uv" => array("name" => "紫外", "max" => 15),
                 "voc" => array("name" => "有机挥发物", "max" => 15)
             );
-            foreach ($this->env_param as $param) {
-                if (array_key_exists($param, $indicator)) {
-                    $indicator_scatter[] = $indicator[$param];
+            foreach ($indicator as $param => $value) {
+                if (in_array($param,$this->env_param)) {
+                    $indicator_scatter[] = $value;
                 }
             }
-            $datas = $this->depart_table();
             $rs = array("legend"=>$this->legend,"indicator"=>$indicator_scatter,"data"=>$datas["scatter"]);
         }else{
             $params = config_item("params");
             $ydata = array($params[$this->env_param[0]]);
-            $datas = $this->depart_table();
             $rs = array("legend"=>$this->legend,"ydata"=>$ydata,"xdata"=>$datas["scatter"]);
         }
         $this->response($rs);
@@ -174,7 +172,7 @@ class Analysis extends MY_Controller{ //按时间对比
     
     public function analysis_temperature_get(){ //稳定性统计概况-温度
         $museum_temperature = array();
-        $x_temperature = array("0%~4%(含)","4%~6%(含)","6%~7%(含)",">7.5%");
+        $x_temperature = array("0%~4%(含)","4%~6%(含)","6%~7%(含)",">7%");
         $data_scatter = $this->data_scatter();
         $temperature = $data_scatter["scatter_temperature"];
         foreach ($this->dates as $date){
@@ -195,7 +193,7 @@ class Analysis extends MY_Controller{ //按时间对比
                 }else{
                     $data[] = 0;
                 }
-                if($temperature[$date]> 0.075){
+                if($temperature[$date]> 0.07){
                     $data[] = $temperature[$date]*100;
                 }else{
                     $data[] = 0;
@@ -210,7 +208,7 @@ class Analysis extends MY_Controller{ //按时间对比
 
     public function analysis_humidity_get(){ //稳定性统计概况-湿度
         $museum_humidity = array();
-        $x_humidity = array("0%~2%(含)","2%~3%(含)","3%~3.5%(含)",">4%");
+        $x_humidity = array("0%~2%(含)","2%~3%(含)","3%~3.5%(含)",">3.5%");
         $data_scatter = $this->data_scatter();
         $humidity = $data_scatter["scatter_humidity"];
         foreach ($this->dates as $date){
@@ -231,7 +229,7 @@ class Analysis extends MY_Controller{ //按时间对比
                 }else{
                     $data[] = 0;
                 }
-                if($humidity[$date]> 0.04){
+                if($humidity[$date]> 0.035){
                     $data[] = $humidity[$date]*100;
                 }else{
                     $data[] = 0;
@@ -245,6 +243,7 @@ class Analysis extends MY_Controller{ //按时间对比
     }
 
     private function depart_table(){
+        $dates_exist = array();
         $data = array(
             "compliance"=>array(),
             "scatter"=>array()
@@ -258,25 +257,26 @@ class Analysis extends MY_Controller{ //按时间对比
         foreach ($this->dates as $date){
             foreach ($data_complex as $item) {
                 if($item["date"] == $date){
+                    $dates_exist[] = $date;
                     $standard = $scatter = array();
                     if(in_array("temperature",$this->env_param)){
-                        $standard[] = $item["temperature_total"]?round(($item["temperature_total"] - $item["temperature_abnormal"])/$item["temperature_total"])*100:0;
+                        $standard[] = $item["temperature_total"]?round(($item["temperature_total"] - $item["temperature_abnormal"])/$item["temperature_total"],4)*100:0;
                         $scatter[] = $item["scatter_temperature"]?$item["scatter_temperature"]*100:0;
                     };
                     if(in_array("humidity",$this->env_param)){
-                        $standard[] = $item["humidity_total"]?round(($item["humidity_total"] - $item["humidity_abnormal"])/$item["humidity_total"])*100:0;
+                        $standard[] = $item["humidity_total"]?round(($item["humidity_total"] - $item["humidity_abnormal"])/$item["humidity_total"],4)*100:0;
                         $scatter[] = $item["scatter_humidity"]?$item["scatter_humidity"]*100:0;
                     }
                     if(in_array("light",$this->env_param)){
-                        $standard[] = $item["light_total"]?round(($item["light_total"] - $item["light_abnormal"])/$item["light_total"])*100:0;
+                        $standard[] = $item["light_total"]?round(($item["light_total"] - $item["light_abnormal"])/$item["light_total"],4)*100:0;
                         $scatter[] = $item["scatter_light"]?$item["scatter_light"]*100:0;
                     }
                     if(in_array("uv",$this->env_param)){
-                        $standard[] = $item["uv_total"]?round(($item["uv_total"] - $item["uv_abnormal"])/$item["uv_total"])*100:0;
+                        $standard[] = $item["uv_total"]?round(($item["uv_total"] - $item["uv_abnormal"])/$item["uv_total"],4)*100:0;
                         $scatter[] = $item["scatter_uv"]?$item["scatter_uv"]*100:0;
                     }
                     if(in_array("voc",$this->env_param)){
-                        $standard[] = $item["voc_total"]?round(($item["voc_total"] - $item["voc_abnormal"])/$item["voc_total"])*100:0;
+                        $standard[] = $item["voc_total"]?round(($item["voc_total"] - $item["voc_abnormal"])/$item["voc_total"],4)*100:0;
                         $scatter[] = $item["scatter_voc"]?$item["scatter_voc"]*100:0;
                     }
                     if(sizeof($this->env_param) > 1) {
@@ -292,6 +292,22 @@ class Analysis extends MY_Controller{ //按时间对比
                     break;
                 }
             }
+        }
+
+        $diff = array_diff($this->dates,$dates_exist);
+        if(sizeof($this->env_param) > 1){
+            $values = array();
+            foreach ($this->env_param as $p){
+                $values[] = 0;
+            }
+            $values[] = 0;
+        }else{
+            $values[] = 0;
+        }
+        foreach ($diff as $date){
+            $date = substr($date,1,8);
+            $date = substr($date,0,4)."-".substr($date,4,2).'-'.substr($date,6,2);
+            $data["compliance"][] =  $data["scatter"][] = array("name"=>$date,"value"=>$values);
         }
         return $data;
 
