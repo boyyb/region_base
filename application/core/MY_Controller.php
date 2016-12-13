@@ -47,6 +47,9 @@ class MY_Controller extends REST_Controller
         if(!$env_type){
             $env_type = "cabinet";
         }
+        if(!array_key_exists($env_type,$this->env_type_arr)){
+            $this->response(array("error"=>"环境类型参数错误"));
+        }
         $this->env_type = $this->env_type_arr[$env_type];
         $env_param = $this->get("env_param");
         if(!$env_param){

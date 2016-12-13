@@ -80,12 +80,15 @@ class Analysis extends MY_Controller{ //按时间对比
         if(!$env_type){
             $this->response(array("error"=>"请选择环境类型"));
         }
+        if(!$this->db->field_exists("count_".$env_type,"data_base")){
+            $this->response(array("error"=>"字段错误：".$env_type));
+        }
         $counts = $this->db->select("count_".$env_type)->where("mid",$this->mid)->get("data_base")->row_array();
         if(!$counts){
             $this->response(array("error"=>"找不到数据"));
         }
         foreach ($this->legend as $date){
-            $counts_rs[] = array("name"=>$date,"count"=>$counts["count_".$env_type]);//展柜数量
+            $counts_rs[] = array("name"=>$date,"count"=>$counts["count_".$env_type]);//环境数量
         }
         $this->response($counts_rs);
     }

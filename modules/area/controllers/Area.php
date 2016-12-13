@@ -857,15 +857,15 @@ class Area extends MY_Controller{
 
     public function analysis_counts_get(){ //环境数量获取
         $mids = $this->get("mids");
-        if(!$mids){
-            $this->response(array("error"=>"缺少mids"));
-        }
         $env_type = $this->get("env_type");
-        if(!$env_type){
-            $this->response(array("error"=>"请选择环境类型"));
+        if(!$mids || !$env_type){
+            $this->response(array("error"=>"缺少参数"));
         }
         $counts_arr = $counts_rs = array();
         $mid_arr = explode(",",$mids);
+        if(!$this->db->field_exists("count_".$env_type,"data_base")){
+            $this->response(array("error"=>"字段错误：".$env_type));
+        }
         $counts = $this->db->select("mid,count_".$env_type)->get("data_base")->result_array();
         foreach ($counts as $count){
             $counts_arr[$count["mid"]] = $count["count_".$env_type];
