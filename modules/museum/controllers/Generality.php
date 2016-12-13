@@ -18,9 +18,8 @@ class Generality extends REST_Controller{
     }
 
     public function all_museum_get(){
-        $museum =  $this->db->select("m.id,m.name")
-                            ->join("data_base b","m.id=b.mid")
-                            ->get("museum m")
+        $museum =  $this->db->select("id,name")
+                            ->get("museum")
                             ->result_array();
         $this->response($museum);
     }
