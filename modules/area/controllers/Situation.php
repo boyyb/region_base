@@ -287,11 +287,13 @@ class Situation extends MY_Controller{
                 "mid"=>$val['id'],
                 "name"=>$val['name'],
                 "grid"=>array((float)$val['longitude'],(float)$val['latitude']),
-                "compliance"=>(isset($datas[$val['id']]) && $datas[$val['id']]['standard_percent'] !== null)?round($datas[$val['id']]['standard_percent'],4)*100 . "%":null,//0 !== null
-                "temperature_scatter"=>(isset($datas[$val['id']]) && $datas[$val['id']]['scatter_temperature'])?$datas[$val['id']]['scatter_temperature']*100 . "%":null,
-                "humidity_scatter"=>(isset($datas[$val['id']]) && $datas[$val['id']]['scatter_humidity'])?$datas[$val['id']]['scatter_humidity']*100 . "%":null,
-                "is_wave_abnormal"=>isset($wave_data[$val['id']])?"是":"无",
-                "is_value_abnormal"=>isset($abnormal_data[$val['id']])?"是":"无"
+                "list"=>array(
+                    "compliance"=>(isset($datas[$val['id']]) && $datas[$val['id']]['standard_percent'] !== null)?round($datas[$val['id']]['standard_percent'],4)*100 . "%":null,//0 !== null
+                    "temperature_scatter"=>(isset($datas[$val['id']]) && $datas[$val['id']]['scatter_temperature'])?$datas[$val['id']]['scatter_temperature']*100 . "%":null,
+                    "humidity_scatter"=>(isset($datas[$val['id']]) && $datas[$val['id']]['scatter_humidity'])?$datas[$val['id']]['scatter_humidity']*100 . "%":null,
+                    "is_wave_abnormal"=>isset($wave_data[$val['id']])?"是":"无",
+                    "is_value_abnormal"=>isset($abnormal_data[$val['id']])?"是":"无"
+                )
             );
         }
 
