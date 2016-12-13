@@ -204,7 +204,7 @@ class Situation extends MY_Controller{
     }
 
 
-    //地图
+    //地图-所有博物馆（多博物馆）
     public function map_get(){
         $mid = $this->get("mids");//接收对比分析的博物馆id 格式mid=2,3,4
         $env = $this->env_type;
@@ -320,6 +320,139 @@ class Situation extends MY_Controller{
         $data['show'] = $data['total'];
 
         $this->response($data);
+    }
+
+    //地图-博物馆按时间对比
+    public function map_by_time_get(){
+        $date_compare = explode(",",$this->get("definite_time")); //对比时间
+        if(count(array_filter($date_compare)) != 2) $this->response(array("error"=>"对比日期格式不正确！"));
+        $mids =  explode(",",$this->get("mids"));
+        $mid = $mids[0];
+        $env = $this->env_type;
+        $param = $this->env_param;
+        $params = array();//环境参数编号
+        $wave_params = array();//日波动相关的环境参数编号
+        foreach($param as $v){
+            if($v=="humidity" && $this->env_type != "展厅") {array_push($params,1,2,3,12);array_push($wave_params,1,2,3,12);}
+            elseif($v=="humidity" && $this->env_type == "展厅") {array_push($params,10);array_push($wave_params,10);}
+            elseif($v=="light" && $this->env_type != "展厅") array_push($params,4,5,6,13);
+            elseif($v=="light" && $this->env_type == "展厅") array_push($params,11);
+            elseif($v=="temperature") {array_push($params,7);array_push($wave_params,7);}
+            elseif($v=="uv") array_push($params,8);
+            elseif($v=="voc") array_push($params,9);
+        }
+
+        //统计一个博物馆下两个日期的离散、达标率
+        $totalstr = '';
+        $abnormalstr = '';
+        foreach ($param as $v) {
+            $totalstr .= "+{$v}_total";
+            $abnormalstr .= "+{$v}_abnormal";
+        }
+        $totalstr = "(".substr($totalstr, 1).")";
+        $abnormalstr = "(".substr($abnormalstr, 1).")";
+        $sp = "(".$totalstr."-".$abnormalstr.")/$totalstr "." as standard_percent";
+        $datas = array();
+        foreach($date_compare as $date){
+            $dc_datas = $this->db
+                ->select("distinct(mid),scatter_temperature,scatter_humidity,".$sp)
+                ->where("date","D".$date)
+                ->where("mid",$mid)
+                ->where("env_type",$env)
+                ->get("data_complex")
+                ->result_array();
+            if($dc_datas){
+                $datas[$date] = array(
+                    "mid"=>$mid,
+                    "scatter_temperature"=>($dc_datas[0]['scatter_temperature']*100)."%",
+                    "scatter_humidity"=>($dc_datas[0]['scatter_humidity']*100)."%",
+                    "standard_percent"=>($dc_datas[0]['standard_percent']*100)."%",
+                );
+            }else{
+                $datas[$date] = array(
+                    "mid"=>$mid,
+                    "scatter_temperature"=>"0",
+                    "scatter_humidity"=>"0",
+                    "standard_percent"=>"0"
+                );
+            }
+        }
+
+
+        //统计单个博物馆日波动(温度/湿度)超标情况 不剔除异常值
+        $wave_data = array();
+        if(in_array("temperature",$this->env_param) || in_array("humidity",$this->env_param)){
+            foreach($date_compare as $date){
+                $dep_datas = $this->db
+                    ->select("mid,date,wave_status")
+                    ->where("date","D".$date) //按天统计
+                    ->where("env_type",$env)
+                    ->where("mid",$mid)
+                    ->where_in("param",$wave_params)
+                    ->where("wave_status>",3)
+                    ->get("data_envtype_param")
+                    ->result_array();
+                if($dep_datas){
+                    $wave_data[$date] = true;
+                }else{
+                    $wave_data[$date] = false;
+                }
+            }
+
+        }
+
+        //统计单个博物馆异常值情况
+        $abnormal_data = array();
+        foreach($date_compare as $date){
+            $dep_datas = $this->db
+                ->select("mid,date,SUM(count_abnormal) as number")
+                ->where("date","D".$date)
+                ->where("env_type",$env)
+                ->where_in("param",$params)
+                ->where("mid",$mid)
+                ->group_by("mid")
+                ->having("SUM(count_abnormal) > 0")
+                ->get("data_envtype_param")
+                ->result_array();
+            if($dep_datas){
+                $abnormal_data[$date] = true;
+            }else{
+                $abnormal_data[$date] = false;
+            }
+        }
+
+        //所有博物馆基础信息(名称、坐标)
+        $mdatas = $this->db->where("id",$mid)->get("museum")->result_array();
+        $mdatas = $mdatas[0];
+
+        //返回格式
+        $map_data['map_name'] = app_config("map_name");
+        $map_data['data']= array(
+            "mid"=>$mid,
+            "name"=>$mdatas['name'],
+            "grid"=>array((float)$mdatas['longitude'],(float)$mdatas['latitude']),
+            "list"=>array(
+                array(
+                    "date"=>$date_compare[0],
+                    "compliance"=> $datas[$date_compare[0]]['standard_percent'],
+                    "temperature_scatter"=>$datas[$date_compare[0]]['scatter_temperature'],
+                    "humidity_scatter"=>$datas[$date_compare[0]]['scatter_humidity'],
+                    "is_wave_abnormal"=>$wave_data[$date_compare[0]]?"是":"无",
+                    "is_value_abnormal"=>$abnormal_data[$date_compare[0]]?"是":"无"
+                ),
+                array(
+                    "date"=>$date_compare[1],
+                    "compliance"=> $datas[$date_compare[1]]['standard_percent'],
+                    "temperature_scatter"=>$datas[$date_compare[1]]['scatter_temperature'],
+                    "humidity_scatter"=>$datas[$date_compare[1]]['scatter_humidity'],
+                    "is_wave_abnormal"=>$wave_data[$date_compare[1]]?"是":"无",
+                    "is_value_abnormal"=>$abnormal_data[$date_compare[1]]?"是":"无"
+                )
+            )
+        );
+
+        $this->response($map_data);
+
     }
 
 }
