@@ -255,6 +255,7 @@ class Analysis extends MY_Controller{ //按时间对比
             "compliance"=>array(),
             "scatter"=>array()
         );
+        $params = array_keys(config_item("params"));
         $data_complex = $this->db->select("*")
             ->where("env_type",$this->env_type)
             ->where("mid",$this->mid)
@@ -266,29 +267,28 @@ class Analysis extends MY_Controller{ //按时间对比
                 if($item["date"] == $date){
                     $dates_exist[] = $date;
                     $standard = $scatter = array();
-                    if(in_array("temperature",$this->env_param)){
-                        $standard[] = $item["temperature_total"]?round(($item["temperature_total"] - $item["temperature_abnormal"])/$item["temperature_total"],4)*100:0;
-                        $scatter[] = $item["scatter_temperature"]?$item["scatter_temperature"]*100:0;
-                    };
-                    if(in_array("humidity",$this->env_param)){
-                        $standard[] = $item["humidity_total"]?round(($item["humidity_total"] - $item["humidity_abnormal"])/$item["humidity_total"],4)*100:0;
-                        $scatter[] = $item["scatter_humidity"]?$item["scatter_humidity"]*100:0;
+                    $standard_count = $scatter_count = 0;
+                    foreach ($params as $param){
+                        if(in_array($param,$this->env_param)){
+                            if($item[$param."_total"]){
+                                $standard[] = round(($item[$param."_total"] - $item[$param."_abnormal"])/$item[$param."_total"],4)*100;
+                                $standard_count ++;
+                            }else{
+                                $standard[] = 0;
+                            }
+
+                            if($item["scatter_".$param]){
+                                $scatter[] = $item["scatter_".$param]*100;
+                                $scatter_count ++;
+                            }else{
+                                $scatter[] = 0;
+                            }
+                        };
                     }
-                    if(in_array("light",$this->env_param)){
-                        $standard[] = $item["light_total"]?round(($item["light_total"] - $item["light_abnormal"])/$item["light_total"],4)*100:0;
-                        $scatter[] = $item["scatter_light"]?$item["scatter_light"]*100:0;
-                    }
-                    if(in_array("uv",$this->env_param)){
-                        $standard[] = $item["uv_total"]?round(($item["uv_total"] - $item["uv_abnormal"])/$item["uv_total"],4)*100:0;
-                        $scatter[] = $item["scatter_uv"]?$item["scatter_uv"]*100:0;
-                    }
-                    if(in_array("voc",$this->env_param)){
-                        $standard[] = $item["voc_total"]?round(($item["voc_total"] - $item["voc_abnormal"])/$item["voc_total"],4)*100:0;
-                        $scatter[] = $item["scatter_voc"]?$item["scatter_voc"]*100:0;
-                    }
+
                     if(sizeof($this->env_param) > 1) {
-                        $average_standard = round(array_sum($standard) / sizeof($standard), 2);
-                        $average_scatter = round(array_sum($scatter) / sizeof($scatter), 2);
+                        $average_standard = $standard_count?round(array_sum($standard)/$standard_count,2):0;
+                        $average_scatter = $scatter_count?round(array_sum($scatter)/$scatter_count,2):0;
                         array_unshift($standard, $average_standard);
                         array_unshift($scatter, $average_scatter);
                     }
