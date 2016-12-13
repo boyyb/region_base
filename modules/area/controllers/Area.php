@@ -90,6 +90,21 @@ class Area extends MY_Controller{
         return $datas;
     }
 
+    private function data_scatter_env(){
+        $data = $this->db->select("c.mid,c.scatter_temperature,c.scatter_humidity")
+            ->join("museum m","m.id=c.mid")
+            ->where("c.date",$this->date)
+            ->where("c.env_type",$this->env_type)
+            ->get("data_complex_env c")
+            ->result_array();
+        $datas["scatter_temperature"] = $datas["scatter_humidity"] = array();
+        foreach ($data as $value){
+            $datas["scatter_temperature"][$value["mid"]][] = $value["scatter_temperature"];
+            $datas["scatter_humidity"][$value["mid"]][] = $value["scatter_humidity"];
+        }
+
+        return $datas;
+    }
 
     public function general_all_get(){ //区域详情-达标与稳定概况
         $data_standard = $this->detail_standard();
@@ -915,6 +930,7 @@ class Area extends MY_Controller{
         $mid_arr = explode(",",$mids);
         $x_standard = array("99.5%(含)~100%","99%(含)~99.5%","95%(含)~99%","<95%");
         $data_standard = $this->detail_standard_env();
+        //$this->response($data_standard[3]);
         foreach ($mid_arr as $mid){
             if(array_key_exists($mid, $data_standard)){
                 $data = array();
@@ -960,30 +976,34 @@ class Area extends MY_Controller{
         $museum_temperature = $legend = array();
         $mid_arr = explode(",",$mids);
         $x_temperature = array("0%~4%(含)","4%~6%(含)","6%~7%(含)",">7%");
-        $data_scatter = $this->data_scatter();
+        $data_scatter = $this->data_scatter_env();
         $temperature = $data_scatter["scatter_temperature"];
         foreach ($mid_arr as $mid){
             if(array_key_exists($mid,$temperature)){
                 $data = array();//温度离散系数 柱状图数据
-                if($temperature[$mid] > 0 && $temperature[$mid]<= 0.04){
-                    $data[] = $temperature[$mid]*100;
-                }else{
-                    $data[] = 0;
+                $count_all = $count1 = $count2 = $count3 = $count4 = 0;
+                foreach ($temperature[$mid] as $value) {
+                    if ($value > 0 && $value <= 0.04) {
+                        $count1++;
+                    }
+                    if ($value > 0.04 && $value <= 0.06) {
+                        $count2++;
+                    }
+                    if ($value > 0.06 && $value <= 0.07) {
+                        $count3++;
+                    }
+                    if ($value > 0.07) {
+                        $count4++;
+                    }
+                    $count_all++;
                 }
-                if($temperature[$mid] >0.04 && $temperature[$mid]<= 0.06){
-                    $data[] = $temperature[$mid]*100;
+                if ($count_all) {
+                    $data[] = round(($count1 / $count_all),4)*100;
+                    $data[] = round(($count2 / $count_all),4)*100;
+                    $data[] = round(($count3 / $count_all),4)*100;
+                    $data[] = round(($count4 / $count_all),4)*100;
                 }else{
-                    $data[] = 0;
-                }
-                if($temperature[$mid] >0.06 && $temperature[$mid]<= 0.07){
-                    $data[] = $temperature[$mid]*100;
-                }else{
-                    $data[] = 0;
-                }
-                if($temperature[$mid]> 0.07){
-                    $data[] = $temperature[$mid]*100;
-                }else{
-                    $data[] = 0;
+                    $data = array(0,0,0,0);
                 }
                 $museum_temperature[] = array("name"=>$this->museum[$mid],"data"=>$data);
             }
@@ -1003,30 +1023,34 @@ class Area extends MY_Controller{
         $museum_humidity = $legend = array();
         $mid_arr = explode(",",$mids);
         $x_humidity = array("0%~2%(含)","2%~3%(含)","3%~3.5%(含)",">3.5%");
-        $data_scatter = $this->data_scatter();
+        $data_scatter = $this->data_scatter_env();
         $humidity = $data_scatter["scatter_humidity"];
         foreach ($mid_arr as $mid){
             if(array_key_exists($mid,$humidity)){
                 $data = array();//湿度离散系数 柱状图数据
-                if($humidity[$mid] > 0 && $humidity[$mid]<= 0.02){
-                    $data[] = $humidity[$mid]*100;
-                }else{
-                    $data[] = 0;
+                $count_all = $count1 = $count2 = $count3 = $count4 = 0;
+                foreach ($humidity[$mid] as $value) {
+                    if ($value > 0 && $value <= 0.02) {
+                        $count1++;
+                    }
+                    if ($value > 0.02 && $value <= 0.03) {
+                        $count2++;
+                    }
+                    if ($value > 0.03 && $value <= 0.035) {
+                        $count3++;
+                    }
+                    if ($value > 0.035) {
+                        $count4++;
+                    }
+                    $count_all++;
                 }
-                if($humidity[$mid] >0.02 && $humidity[$mid]<= 0.03){
-                    $data[] = $humidity[$mid]*100;
+                if ($count_all) {
+                    $data[] = round(($count1 / $count_all),4)*100;
+                    $data[] = round(($count2 / $count_all),4)*100;
+                    $data[] = round(($count3 / $count_all),4)*100;
+                    $data[] = round(($count4 / $count_all),4)*100;
                 }else{
-                    $data[] = 0;
-                }
-                if($humidity[$mid] >0.03 && $humidity[$mid]<= 0.035){
-                    $data[] = $humidity[$mid]*100;
-                }else{
-                    $data[] = 0;
-                }
-                if($humidity[$mid]> 0.035){
-                    $data[] = $humidity[$mid]*100;
-                }else{
-                    $data[] = 0;
+                    $data = array(0,0,0,0);
                 }
                 $museum_humidity[] = array("name"=>$this->museum[$mid],"data"=>$data);
             }
