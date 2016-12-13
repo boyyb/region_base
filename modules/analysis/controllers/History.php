@@ -83,7 +83,7 @@ class History extends MY_Controller{
                     ->get("data_complex")
                     ->result_array();
                 if($dc_datas && $dc_datas[0]['total']) //include sp=0
-                    $datas[$mid][$date] = round($dc_datas[0]['standard_percent'],3);
+                    $datas[$mid][$date] = round($dc_datas[0]['standard_percent'],4);
                 else $datas[$mid][$date] = null;
             }
             $names[] = $this->museum[$mid];
