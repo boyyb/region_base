@@ -119,7 +119,7 @@ class Analysis extends MY_Controller{ //按时间对比
         foreach ($data_flag as $k => $value){
             $total = array_sum($value["total"]);
             $abnormal = array_sum($value["abnormal"]);
-            $data_standard[$k] = $total?round(($total - $abnormal) / $total,2):0;
+            $data_standard[$k] = $total?round(($total - $abnormal) / $total,4):0;
         }
 
         return $data_standard;
