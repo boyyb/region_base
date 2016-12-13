@@ -74,14 +74,18 @@ class Analysis extends MY_Controller{ //按时间对比
         $this->response($rs);
     }
 
-    public function analysis_counts_get(){ //展柜数量获取
+    public function analysis_counts_get(){ //环境数量获取
         $counts_rs = array();
-        $counts = $this->db->select("count_showcase")->where("mid",$this->mid)->get("data_base")->row_array();
+        $env_type = $this->get("env_type");
+        if(!$env_type){
+            $this->response(array("error"=>"请选择环境类型"));
+        }
+        $counts = $this->db->select("count_".$env_type)->where("mid",$this->mid)->get("data_base")->row_array();
         if(!$counts){
             $this->response(array("error"=>"找不到数据"));
         }
         foreach ($this->legend as $date){
-            $counts_rs[] = array("name"=>$date,"count"=>$counts["count_showcase"]);//展柜数量
+            $counts_rs[] = array("name"=>$date,"count"=>$counts["count_".$env_type]);//展柜数量
         }
         $this->response($counts_rs);
     }

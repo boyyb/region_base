@@ -855,16 +855,20 @@ class Area extends MY_Controller{
         $this->response($rs);
     }
 
-    public function analysis_counts_get(){ //展柜数量获取
+    public function analysis_counts_get(){ //环境数量获取
         $mids = $this->get("mids");
         if(!$mids){
             $this->response(array("error"=>"缺少mids"));
         }
+        $env_type = $this->get("env_type");
+        if(!$env_type){
+            $this->response(array("error"=>"请选择环境类型"));
+        }
         $counts_arr = $counts_rs = array();
         $mid_arr = explode(",",$mids);
-        $counts = $this->db->select("mid,count_showcase")->get("data_base")->result_array();
+        $counts = $this->db->select("mid,count_".$env_type)->get("data_base")->result_array();
         foreach ($counts as $count){
-            $counts_arr[$count["mid"]] = $count["count_showcase"];
+            $counts_arr[$count["mid"]] = $count["count_".$env_type];
         }
         foreach ($mid_arr as $mid){
             if(array_key_exists($mid, $counts_arr)){
