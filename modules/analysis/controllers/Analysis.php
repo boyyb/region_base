@@ -52,16 +52,25 @@ class Analysis extends MY_Controller{ //按时间对比
     public function all_scatter_get(){ //离散系数 雷达图
         $datas = $this->depart_table();
         if(sizeof($this->env_param) > 1) { //雷达图
-            $indicator_scatter = array(array("name" => "全参数平均离散系数", "max" => 15));
+            $indicator_scatter = array(array("name" => "全参数平均离散系数"));
             $indicator = array(
-                "temperature" => array("name" => "温度", "max" => 15),
-                "humidity" => array("name" => "湿度", "max" => 15),
-                "light" => array("name" => "光照", "max" => 15),
-                "uv" => array("name" => "紫外", "max" => 15),
-                "voc" => array("name" => "有机挥发物", "max" => 15)
+                "temperature" => array("name" => "温度"),
+                "humidity" => array("name" => "湿度"),
+                "light" => array("name" => "光照"),
+                "uv" => array("name" => "紫外"),
+                "voc" => array("name" => "有机挥发物")
             );
+            $scatters = array();
+            foreach ($datas["scatter"] as $data){
+                if($data["value"]){
+                    $scatters[] = max($data["value"]);
+                }
+            }
+            $max = $scatters?max($scatters):0;
+            $indicator_scatter[0]["max"] = $max;
             foreach ($indicator as $param => $value) {
                 if (in_array($param,$this->env_param)) {
+                    $value["max"] = $max;
                     $indicator_scatter[] = $value;
                 }
             }
@@ -124,37 +133,70 @@ class Analysis extends MY_Controller{ //按时间对比
 
         return $data_standard;
     }
+
+    private function detail_standard_env(){
+        $params = '';
+        $data_standard = array();
+        foreach ($this->env_param as $param){
+            $params .= ",".$param."_total".",".$param."_abnormal";
+        }
+        $data_compliance = $this->db->select("id,date".$params)
+            ->where("env_type",$this->env_type)
+            ->where("mid",$this->mid)
+            ->where_in("date",$this->dates)
+            ->get("data_complex_env")
+            ->result_array();
+        foreach ($data_compliance as $value){
+            if($value["date"]){
+                $abnormal_count = $total_count = 0;
+                foreach ($this->env_param as $param){
+                    $abnormal_count += $value[$param."_abnormal"];
+                    $total_count += $value[$param."_total"];
+                }
+                $data_standard[$value["date"]][] = $total_count?round(($total_count - $abnormal_count) / $total_count,4):0;;
+            }
+        }
+
+        return $data_standard;
+    }
     
     public function analysis_compliance_get(){ //达标率统计概况
         $museum_standard = array();
         $x_standard = array("99.5%(含)~100%","99%(含)~99.5%","95%(含)~99%","<95%");
-        $data_standard = $this->detail_standard();
+        $data_standard = $this->detail_standard_env();
         foreach ($this->dates as $date){
             if(array_key_exists($date, $data_standard)){
                 $data = array();//达标率柱状图数据
-                if($data_standard[$date] >= 0.995 && $data_standard[$date]<= 1){
-                    $data[] = $data_standard[$date]*100;
-                }else{
-                    $data[] = 0;
+                $count_all = $count1 = $count2 = $count3 = $count4 = 0;//达标率柱状图数据
+                foreach ($data_standard[$date] as $value) {
+                    if ($value >= 0.995 && $value <= 1) {
+                        $count1 ++;
+                    }
+                    if ($value >= 0.99 && $value < 0.995) {
+                        $count2 ++;
+                    }
+                    if ($value >= 0.95 && $value < 0.99) {
+                        $count3 ++;
+                    }
+                    if ($value < 0.95) {
+                        $count4 ++;
+                    }
+                    $count_all ++;
                 }
-                if($data_standard[$date] >= 0.99 && $data_standard[$date]< 0.995){
-                    $data[] = $data_standard[$date]*100;
-                }else{
-                    $data[] = 0;
-                }
-                if($data_standard[$date] >= 0.95 && $data_standard[$date]< 0.99){
-                    $data[] = $data_standard[$date]*100;
-                }else{
-                    $data[] = 0;
-                }
-                if($data_standard[$date]< 0.95){
-                    $data[] = $data_standard[$date]*100;
-                }else{
-                    $data[] = 0;
-                }
+
                 $date = substr($date,1,8);
                 $date = substr($date,0,4)."-".substr($date,4,2).'-'.substr($date,6,2);
+                if ($count_all) {
+                    $data[] = round(($count1 / $count_all),4)*100;
+                    $data[] = round(($count2 / $count_all),4)*100;
+                    $data[] = round(($count3 / $count_all),4)*100;
+                    $data[] = round(($count4 / $count_all),4)*100;
+                }else{
+                    $data = array(0,0,0,0);
+                }
                 $museum_standard[] = array("name"=>$date,"data"=>$data);
+            }else{
+                $museum_standard[] = array("name"=>$date,"data"=>array(0,0,0,0));
             }
             
         }
@@ -176,38 +218,64 @@ class Analysis extends MY_Controller{ //按时间对比
 
         return $datas;
     }
+
+    private function data_scatter_env(){
+        $data = $this->db->select("date,scatter_temperature,scatter_humidity")
+            ->where("env_type",$this->env_type)
+            ->where("mid",$this->mid)
+            ->where_in("date",$this->dates)
+            ->get("data_complex_env")
+            ->result_array();
+        $datas["scatter_temperature"] = $datas["scatter_humidity"] = array();
+        foreach ($data as $value){
+            if($value["scatter_temperature"] != null) {
+                $datas["scatter_temperature"][$value["date"]] = $value["scatter_temperature"];
+            }
+            if($value["scatter_humidity"] != null) {
+                $datas["scatter_humidity"][$value["date"]] = $value["scatter_humidity"];
+            }
+        }
+
+        return $datas;
+    }
     
     public function analysis_temperature_get(){ //稳定性统计概况-温度
         $museum_temperature = array();
         $x_temperature = array("0%~4%(含)","4%~6%(含)","6%~7%(含)",">7%");
-        $data_scatter = $this->data_scatter();
+        $data_scatter = $this->data_scatter_env();
         $temperature = $data_scatter["scatter_temperature"];
         foreach ($this->dates as $date){
             if(array_key_exists($date,$temperature)){
                 $data = array();//温度离散系数 柱状图数据
-                if($temperature[$date] > 0 && $temperature[$date]<= 0.04){
-                    $data[] = $temperature[$date]*100;
-                }else{
-                    $data[] = 0;
+                $count_all = $count1 = $count2 = $count3 = $count4 = 0;
+                foreach ($temperature[$date] as $value) {
+                    if ($value > 0 && $value <= 0.04) {
+                        $count1++;
+                    }
+                    if ($value > 0.04 && $value <= 0.06) {
+                        $count2++;
+                    }
+                    if ($value > 0.06 && $value <= 0.07) {
+                        $count3++;
+                    }
+                    if ($value > 0.07) {
+                        $count4++;
+                    }
+                    $count_all ++;
                 }
-                if($temperature[$date] >0.04 && $temperature[$date]<= 0.06){
-                    $data[] = $temperature[$date]*100;
+                if ($count_all) {
+                    $data[] = round(($count1 / $count_all),4)*100;
+                    $data[] = round(($count2 / $count_all),4)*100;
+                    $data[] = round(($count3 / $count_all),4)*100;
+                    $data[] = round(($count4 / $count_all),4)*100;
                 }else{
-                    $data[] = 0;
-                }
-                if($temperature[$date] >0.06 && $temperature[$date]<= 0.07){
-                    $data[] = $temperature[$date]*100;
-                }else{
-                    $data[] = 0;
-                }
-                if($temperature[$date]> 0.07){
-                    $data[] = $temperature[$date]*100;
-                }else{
-                    $data[] = 0;
+                    $data = array(0,0,0,0);
                 }
                 $date = substr($date,1,8);
                 $date = substr($date,0,4)."-".substr($date,4,2).'-'.substr($date,6,2);
                 $museum_temperature[] = array("name"=>$date,"data"=>$data);
+            }else{
+                $museum_temperature[] = array("name"=>$date,"data"=>array(0,0,0,0));
             }
         }
         $this->response(array("xdata"=>$x_temperature,"legend"=>$this->legend,"data"=>$museum_temperature));
@@ -216,34 +284,40 @@ class Analysis extends MY_Controller{ //按时间对比
     public function analysis_humidity_get(){ //稳定性统计概况-湿度
         $museum_humidity = array();
         $x_humidity = array("0%~2%(含)","2%~3%(含)","3%~3.5%(含)",">3.5%");
-        $data_scatter = $this->data_scatter();
+        $data_scatter = $this->data_scatter_env();
         $humidity = $data_scatter["scatter_humidity"];
         foreach ($this->dates as $date){
             if(array_key_exists($date,$humidity)){
                 $data = array();//湿度离散系数 柱状图数据
-                if($humidity[$date] > 0 && $humidity[$date]<= 0.02){
-                    $data[] = $humidity[$date]*100;
-                }else{
-                    $data[] = 0;
+                $count_all = $count1 = $count2 = $count3 = $count4 = 0;
+                foreach ($humidity[$date] as $value) {
+                    if ($value > 0 && $value <= 0.02) {
+                        $count1++;
+                    }
+                    if ($value > 0.02 && $value <= 0.03) {
+                        $count2++;
+                    }
+                    if ($value > 0.03 && $value <= 0.035) {
+                        $count3++;
+                    }
+                    if ($value > 0.035) {
+                        $count4++;
+                    }
+                    $count_all ++;
                 }
-                if($humidity[$date] >0.02 && $humidity[$date]<= 0.03){
-                    $data[] = $humidity[$date]*100;
+                if ($count_all) {
+                    $data[] = round(($count1 / $count_all),4)*100;
+                    $data[] = round(($count2 / $count_all),4)*100;
+                    $data[] = round(($count3 / $count_all),4)*100;
+                    $data[] = round(($count4 / $count_all),4)*100;
                 }else{
-                    $data[] = 0;
-                }
-                if($humidity[$date] >0.03 && $humidity[$date]<= 0.035){
-                    $data[] = $humidity[$date]*100;
-                }else{
-                    $data[] = 0;
-                }
-                if($humidity[$date]> 0.035){
-                    $data[] = $humidity[$date]*100;
-                }else{
-                    $data[] = 0;
+                    $data = array(0,0,0,0);
                 }
                 $date = substr($date,1,8);
                 $date = substr($date,0,4)."-".substr($date,4,2).'-'.substr($date,6,2);
                 $museum_humidity[] = array("name"=>$date,"data"=>$data);
+            }else{
+                $museum_humidity[] = array("name"=>$date,"data"=>array(0,0,0,0));
             }
         }
         $this->response(array("xdata"=>$x_humidity,"legend"=>$this->legend,"data"=>$museum_humidity));

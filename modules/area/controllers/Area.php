@@ -66,7 +66,7 @@ class Area extends MY_Controller{
                     $abnormal_count += $value[$param."_abnormal"];
                     $total_count += $value[$param."_total"];
                 }
-                $data_standard[$value["id"]][] = $total_count?round(($total_count - $abnormal_count) / $total_count,4):0;;
+                $data_standard[$value["id"]][] = $total_count?round(($total_count - $abnormal_count) / $total_count,4):0;
             }
         }
 
@@ -878,6 +878,7 @@ class Area extends MY_Controller{
                 $legend[] = $this->museum[$mid];
             }
         }
+        $datas = $this->depart_table($mid_arr);
         if(sizeof($this->env_param) > 1) { //雷达图
             $indicator_scatter = array(array("name" => "全参数平均离散系数"));
             $indicator = array(
@@ -887,7 +888,6 @@ class Area extends MY_Controller{
                 "uv" => array("name" => "紫外"),
                 "voc" => array("name" => "有机挥发物")
             );
-            $datas = $this->depart_table($mid_arr);
             $scatters = array();
             foreach ($datas["scatter"] as $data){
                 if($data["value"]){
@@ -906,7 +906,6 @@ class Area extends MY_Controller{
         }else{
             $params = config_item("params");
             $ydata = array($params[$this->env_param[0]]);
-            $datas = $this->depart_table($mid_arr);
             $rs = array("legend"=>$legend,"ydata"=>$ydata,"xdata"=>$datas["scatter"]);
         }
         $this->response($rs);
