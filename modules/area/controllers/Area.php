@@ -99,8 +99,13 @@ class Area extends MY_Controller{
             ->result_array();
         $datas["scatter_temperature"] = $datas["scatter_humidity"] = array();
         foreach ($data as $value){
-            $datas["scatter_temperature"][$value["mid"]][] = $value["scatter_temperature"];
-            $datas["scatter_humidity"][$value["mid"]][] = $value["scatter_humidity"];
+            if($value["scatter_temperature"] != null){
+                $datas["scatter_temperature"][$value["mid"]][] = $value["scatter_temperature"];
+            }
+            if($value["scatter_humidity"] != null){
+                $datas["scatter_humidity"][$value["mid"]][] = $value["scatter_humidity"];
+            }
+
         }
 
         return $datas;
@@ -876,18 +881,25 @@ class Area extends MY_Controller{
         if(sizeof($this->env_param) > 1) { //雷达图
             $indicator_scatter = array(array("name" => "全参数平均离散系数", "max" => 15));
             $indicator = array(
-                "temperature" => array("name" => "温度", "max" => 15),
-                "humidity" => array("name" => "湿度", "max" => 15),
-                "light" => array("name" => "光照", "max" => 15),
-                "uv" => array("name" => "紫外", "max" => 15),
-                "voc" => array("name" => "有机挥发物", "max" => 15)
+                "temperature" => array("name" => "温度"),
+                "humidity" => array("name" => "湿度"),
+                "light" => array("name" => "光照"),
+                "uv" => array("name" => "紫外"),
+                "voc" => array("name" => "有机挥发物")
             );
+            $datas = $this->depart_table($mid_arr);
+            $scatters = array();
+            foreach ($datas["scatter"] as $data){
+                if($data["value"]){
+                    $scatters[] = $data["value"];
+                }
+            }
             foreach ($indicator as $param => $value) {
                 if (in_array($param,$this->env_param)) {
+                    $value["max"] = $scatters?max($scatters):0;
                     $indicator_scatter[] = $value;
                 }
             }
-            $datas = $this->depart_table($mid_arr);
             $rs = array("legend"=>$legend,"indicator"=>$indicator_scatter,"data"=>$datas["scatter"]);
         }else{
             $params = config_item("params");

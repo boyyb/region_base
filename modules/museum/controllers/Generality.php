@@ -107,8 +107,8 @@ class Generality extends REST_Controller{
             array("name"=>"珍贵文物数量","max"=>max($precious_relic)),
             array("name"=>"固定展览数量","max"=>max($fixed_exhibition)),
             array("name"=>"临时展览数量","max"=>max($temporary_exhibition)),
-            array("name"=>"昨日微环境达标率","max"=>$micro_compliance?max($micro_compliance):0),
-            array("name"=>"昨日小环境达标率","max"=>$small_compliance?max($small_compliance):0)
+            array("name"=>"昨日微环境达标率","max"=>100),
+            array("name"=>"昨日小环境达标率","max"=>100)
         );
 
         $average = array(
@@ -116,8 +116,8 @@ class Generality extends REST_Controller{
             sizeof($precious_relic)?round(array_sum($precious_relic)/sizeof($precious_relic),1):0,
             sizeof($fixed_exhibition)?round(array_sum($fixed_exhibition)/sizeof($fixed_exhibition),1):0,
             sizeof($temporary_exhibition)?round(array_sum($temporary_exhibition)/sizeof($temporary_exhibition),1):0,
-            $total_all_micro?round(($total_all_micro - $abnormal_all_micro)/$total_all_micro,2):0,
-            $total_all_small?round(($total_all_small - $abnormal_all_small)/$total_all_small,2):0
+            $total_all_micro?round(($total_all_micro - $abnormal_all_micro)/$total_all_micro,4)*100:0,
+            $total_all_small?round(($total_all_small - $abnormal_all_small)/$total_all_small,4)*100:0
         );
         foreach ($result as $key => $value){
             $result[$key]["indicator"] = $indicator_compliance;
