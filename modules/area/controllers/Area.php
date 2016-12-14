@@ -891,7 +891,7 @@ class Area extends MY_Controller{
             $scatters = array();
             foreach ($datas["scatter"] as $data){
                 if($data["value"]){
-                    $scatters[] = $data["value"];
+                    $scatters[] = max($data["value"]);
                 }
             }
             $max = $scatters?max($scatters):0;
