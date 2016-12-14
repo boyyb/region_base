@@ -959,6 +959,8 @@ class Area extends MY_Controller{
                     $data = array(0,0,0,0);
                 }
                 $museum_standard[] = array("name"=>$this->museum[$mid],"data"=>$data);
+            }else{
+                $museum_standard[] = array("name"=>$this->museum[$mid],"data"=>array(0,0,0,0));
             }
 
             if(array_key_exists($mid, $this->museum)){
@@ -1006,6 +1008,8 @@ class Area extends MY_Controller{
                     $data = array(0,0,0,0);
                 }
                 $museum_temperature[] = array("name"=>$this->museum[$mid],"data"=>$data);
+            }else{
+                $museum_temperature[] = array("name"=>$this->museum[$mid],"data"=>array(0,0,0,0));
             }
 
             if(array_key_exists($mid, $this->museum)){
@@ -1053,6 +1057,8 @@ class Area extends MY_Controller{
                     $data = array(0,0,0,0);
                 }
                 $museum_humidity[] = array("name"=>$this->museum[$mid],"data"=>$data);
+            }else{
+                $museum_humidity[] = array("name"=>$this->museum[$mid],"data"=>array(0,0,0,0));
             }
 
             if(array_key_exists($mid, $this->museum)){
