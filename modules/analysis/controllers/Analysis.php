@@ -165,6 +165,7 @@ class Analysis extends MY_Controller{ //按时间对比
         $x_standard = array("99.5%(含)~100%","99%(含)~99.5%","95%(含)~99%","<95%");
         $data_standard = $this->detail_standard_env();
         foreach ($this->dates as $date){
+            $new_date = substr($date,1,4)."-".substr($date,5,2).'-'.substr($date,7,2);
             if(array_key_exists($date, $data_standard)){
                 $data = array();//达标率柱状图数据
                 $count_all = $count1 = $count2 = $count3 = $count4 = 0;//达标率柱状图数据
@@ -184,8 +185,7 @@ class Analysis extends MY_Controller{ //按时间对比
                     $count_all ++;
                 }
 
-                $date = substr($date,1,8);
-                $date = substr($date,0,4)."-".substr($date,4,2).'-'.substr($date,6,2);
+
                 if ($count_all) {
                     $data[] = round(($count1 / $count_all),4)*100;
                     $data[] = round(($count2 / $count_all),4)*100;
@@ -194,9 +194,9 @@ class Analysis extends MY_Controller{ //按时间对比
                 }else{
                     $data = array(0,0,0,0);
                 }
-                $museum_standard[] = array("name"=>$date,"data"=>$data);
+                $museum_standard[] = array("name"=>$new_date,"data"=>$data);
             }else{
-                $museum_standard[] = array("name"=>$date,"data"=>array(0,0,0,0));
+                $museum_standard[] = array("name"=>$new_date,"data"=>array(0,0,0,0));
             }
             
         }
@@ -245,6 +245,7 @@ class Analysis extends MY_Controller{ //按时间对比
         $data_scatter = $this->data_scatter_env();
         $temperature = $data_scatter["scatter_temperature"];
         foreach ($this->dates as $date){
+            $new_date = substr($date,1,4)."-".substr($date,5,2).'-'.substr($date,7,2);
             if(array_key_exists($date,$temperature)){
                 $data = array();//温度离散系数 柱状图数据
                 $count_all = $count1 = $count2 = $count3 = $count4 = 0;
@@ -271,11 +272,9 @@ class Analysis extends MY_Controller{ //按时间对比
                 }else{
                     $data = array(0,0,0,0);
                 }
-                $date = substr($date,1,8);
-                $date = substr($date,0,4)."-".substr($date,4,2).'-'.substr($date,6,2);
-                $museum_temperature[] = array("name"=>$date,"data"=>$data);
+                $museum_temperature[] = array("name"=>$new_date,"data"=>$data);
             }else{
-                $museum_temperature[] = array("name"=>$date,"data"=>array(0,0,0,0));
+                $museum_temperature[] = array("name"=>$new_date,"data"=>array(0,0,0,0));
             }
         }
         $this->response(array("xdata"=>$x_temperature,"legend"=>$this->legend,"data"=>$museum_temperature));
@@ -287,6 +286,7 @@ class Analysis extends MY_Controller{ //按时间对比
         $data_scatter = $this->data_scatter_env();
         $humidity = $data_scatter["scatter_humidity"];
         foreach ($this->dates as $date){
+            $new_date = substr($date,1,4)."-".substr($date,5,2).'-'.substr($date,7,2);
             if(array_key_exists($date,$humidity)){
                 $data = array();//湿度离散系数 柱状图数据
                 $count_all = $count1 = $count2 = $count3 = $count4 = 0;
@@ -313,11 +313,9 @@ class Analysis extends MY_Controller{ //按时间对比
                 }else{
                     $data = array(0,0,0,0);
                 }
-                $date = substr($date,1,8);
-                $date = substr($date,0,4)."-".substr($date,4,2).'-'.substr($date,6,2);
-                $museum_humidity[] = array("name"=>$date,"data"=>$data);
+                $museum_humidity[] = array("name"=>$new_date,"data"=>$data);
             }else{
-                $museum_humidity[] = array("name"=>$date,"data"=>array(0,0,0,0));
+                $museum_humidity[] = array("name"=>$new_date,"data"=>array(0,0,0,0));
             }
         }
         $this->response(array("xdata"=>$x_humidity,"legend"=>$this->legend,"data"=>$museum_humidity));
