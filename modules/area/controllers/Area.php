@@ -998,7 +998,7 @@ class Area extends MY_Controller{
                 $data = array();//温度离散系数 柱状图数据
                 $count_all = $count1 = $count2 = $count3 = $count4 = 0;
                 foreach ($temperature[$mid] as $value) {
-                    if ($value > 0 && $value <= 0.04) {
+                    if ($value >= 0 && $value <= 0.04) {
                         $count1++;
                     }
                     if ($value > 0.04 && $value <= 0.06) {
@@ -1047,7 +1047,7 @@ class Area extends MY_Controller{
                 $data = array();//湿度离散系数 柱状图数据
                 $count_all = $count1 = $count2 = $count3 = $count4 = 0;
                 foreach ($humidity[$mid] as $value) {
-                    if ($value > 0 && $value <= 0.02) {
+                    if ($value >= 0 && $value <= 0.02) {
                         $count1++;
                     }
                     if ($value > 0.02 && $value <= 0.03) {
