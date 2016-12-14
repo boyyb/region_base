@@ -229,10 +229,10 @@ class Analysis extends MY_Controller{ //按时间对比
         $datas["scatter_temperature"] = $datas["scatter_humidity"] = array();
         foreach ($data as $value){
             if($value["scatter_temperature"] != null) {
-                $datas["scatter_temperature"][$value["date"]] = $value["scatter_temperature"];
+                $datas["scatter_temperature"][$value["date"]][] = $value["scatter_temperature"];
             }
             if($value["scatter_humidity"] != null) {
-                $datas["scatter_humidity"][$value["date"]] = $value["scatter_humidity"];
+                $datas["scatter_humidity"][$value["date"]][] = $value["scatter_humidity"];
             }
         }
 
