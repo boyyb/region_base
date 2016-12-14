@@ -879,7 +879,7 @@ class Area extends MY_Controller{
             }
         }
         if(sizeof($this->env_param) > 1) { //雷达图
-            $indicator_scatter = array(array("name" => "全参数平均离散系数", "max" => 15));
+            $indicator_scatter = array(array("name" => "全参数平均离散系数"));
             $indicator = array(
                 "temperature" => array("name" => "温度"),
                 "humidity" => array("name" => "湿度"),
@@ -894,9 +894,11 @@ class Area extends MY_Controller{
                     $scatters[] = $data["value"];
                 }
             }
+            $max = $scatters?max($scatters):0;
+            $indicator_scatter[0]["max"] = $max;
             foreach ($indicator as $param => $value) {
                 if (in_array($param,$this->env_param)) {
-                    $value["max"] = $scatters?max($scatters):0;
+                    $value["max"] = $max;
                     $indicator_scatter[] = $value;
                 }
             }
