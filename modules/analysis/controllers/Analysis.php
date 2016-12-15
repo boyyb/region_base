@@ -364,8 +364,7 @@ class Analysis extends MY_Controller{ //按时间对比
                         array_unshift($standard, $average_standard);
                         array_unshift($scatter, $average_scatter);
                     }
-                    $date = substr($date,1,8);
-                    $date = substr($date,0,4)."-".substr($date,4,2).'-'.substr($date,6,2);
+                    $date = substr($date,1,4)."-".substr($date,5,2).'-'.substr($date,7,2);
                     $data["compliance"][] = array("name"=>$date,"value"=>$standard);
                     $data["scatter"][] = array("name"=>$date,"value"=>$scatter);
                     break;
@@ -384,8 +383,7 @@ class Analysis extends MY_Controller{ //按时间对比
             $values[] = 0;
         }
         foreach ($diff as $date){
-            $date = substr($date,1,8);
-            $date = substr($date,0,4)."-".substr($date,4,2).'-'.substr($date,6,2);
+            $date = substr($date,1,4)."-".substr($date,5,2).'-'.substr($date,7,2);
             $data["compliance"][] =  $data["scatter"][] = array("name"=>$date,"value"=>$values);
         }
         return $data;
