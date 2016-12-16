@@ -146,7 +146,6 @@ class Details extends MY_Controller{
                 "wave_abnormal2"=>$wave_abnormal2
             );
         }
-        
         return $data;
     }
 
