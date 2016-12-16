@@ -25,7 +25,7 @@ class User_model extends MY_Model {
         $data = $this->db->get('user_behavior')->result_array();
         $behavior = array();
         foreach ($data as $d) {
-            $behavior[$d['webkey']] = json_decode($d['behavior'], true);
+            $behavior[$d['webkey']] = $d['behavior'];
         }
         return $behavior;
     }
