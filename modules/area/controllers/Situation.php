@@ -369,16 +369,16 @@ class Situation extends MY_Controller{
             if($dc_datas){
                 $datas[$date] = array(
                     "mid"=>$mid,
-                    "scatter_temperature"=>($dc_datas[0]['scatter_temperature']*100)."%",
-                    "scatter_humidity"=>($dc_datas[0]['scatter_humidity']*100)."%",
-                    "standard_percent"=>(round($dc_datas[0]['standard_percent'],4)*100)."%",
+                    "scatter_temperature"=>$dc_datas[0]['scatter_temperature'] != 0?($dc_datas[0]['scatter_temperature']*100)."%":null,
+                    "scatter_humidity"=>$dc_datas[0]['scatter_humidity'] != 0?($dc_datas[0]['scatter_humidity']*100)."%":null,
+                    "standard_percent"=>$dc_datas[0]['standard_percent'] !== null?(round($dc_datas[0]['standard_percent'],4)*100)."%":null,
                 );
             }else{
                 $datas[$date] = array(
                     "mid"=>$mid,
-                    "scatter_temperature"=>"0",
-                    "scatter_humidity"=>"0",
-                    "standard_percent"=>"0"
+                    "scatter_temperature"=>null,
+                    "scatter_humidity"=>null,
+                    "standard_percent"=>null
                 );
             }
         }
