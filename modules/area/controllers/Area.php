@@ -632,6 +632,26 @@ class Area extends MY_Controller{
         $this->response($rs);
     }
 
+    private function find_unit($depid){
+        $param_arr = array();
+        foreach ($this->texture as $texture){
+            foreach ($texture as $key=>$value){
+                foreach ($value as $param=>$text){
+                    $param_arr[$key] = $param;
+                }
+            }
+        }
+        $key = $this->db->select("param")
+            ->where("id",$depid)
+            ->get("data_envtype_param")
+            ->row_array();
+        $unit = "";
+        if($key && $key["param"]){
+            $unit = array_key_exists($key["param"],$param_arr)?$this->unit[$param_arr[$key["param"]]]:"";
+        }
+        return $unit;
+    }
+
     public function abnormal_get(){ //异常值获取
         $depid = $this->get("depid");
         $abnormal = array();
@@ -641,7 +661,8 @@ class Area extends MY_Controller{
                      ->get("data_abnormal")
                      ->result_array();
         }
-        $this->response($abnormal);
+        $unit = $this->find_unit($depid);
+        $this->response(array("data"=>$abnormal,"unit"=>$unit));
     }
 
     public function wave_abnormal_get(){ //日波动异常获取
@@ -701,7 +722,8 @@ class Area extends MY_Controller{
                 }
             }
         }
-        $this->response($abnormal);
+        $unit = $this->find_unit($depid);
+        $this->response(array("data"=>$abnormal,"unit"=>$unit));
     }
 
 //    public function analysis_get(){
