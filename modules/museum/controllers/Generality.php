@@ -12,7 +12,7 @@ class Generality extends REST_Controller{
     function __construct()
     {
         parent::__construct();
-        $museum = $this->db->select("id,name")->get("museum")->result_array();
+        $museum = $this->db->select("id,name,site_url")->get("museum")->result_array();
         $this->museum_source = $museum;
         foreach ($museum as $value){
             $this->museum[$value["id"]] = $value["name"];
@@ -122,6 +122,9 @@ class Generality extends REST_Controller{
         foreach ($result as $key => $value){
             $result[$key]["indicator"] = $indicator_compliance;
             $result[$key]["data"][] = array("name"=>"区域平均","value"=>$average);
+            // 跳转地址
+            $code = API_encode('base', array('username'=>$this->_user['username'], 'key'=>date('Y-m-d')));
+            $result[$key]['url'] = "http://127.0.0.1/museum_web/dist/main?code={$code}";
         }
 
         $this->response($result);
