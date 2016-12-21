@@ -66,7 +66,10 @@ class Area extends MY_Controller{
                     $abnormal_count += $value[$param."_abnormal"];
                     $total_count += $value[$param."_total"];
                 }
-                $data_standard[$value["id"]][] = $total_count?round(($total_count - $abnormal_count) / $total_count,4):0;
+                if($total_count){
+                    $data_standard[$value["id"]][] = round(($total_count - $abnormal_count) / $total_count,4);
+                }
+
             }
         }
 
@@ -172,7 +175,8 @@ class Area extends MY_Controller{
         $rs = array();
         $rs["less"] = $rs["equal"] = $rs["more"] = 0;
         $rs["attention"] = array();
-        $all = 0;
+        $rs["all"] = sizeof($this->museum);
+        $nodata = 0;
         $rs["standard"] = $calculate["standard"];
         $rs["average"] = $calculate["average"];
         if($type == "standard"){
@@ -182,18 +186,22 @@ class Area extends MY_Controller{
         }
         foreach ($this->museum as $k => $name){
             $value = (array_key_exists($k,$data) && $data[$k])?$data[$k]:0;
-            $distance = 0;
+            $museum = array("mid"=>$k,"name"=>$name);
             if($value){
-                $all ++;
+                $museum["data"] = $value;
                 $distance = $value - $calculate["average"];
+                $museum["distance"] = $distance;
                 $z = $calculate["standard"]?($value - $calculate["average"]) / $calculate["standard"]:0;
                 if($type == "standard" && $z < -2){
                     $rs["attention"][] = $this->museum[$k];
                 }elseif ($type == "scatter" && $z > 2){
                     $rs["attention"][] = $this->museum[$k];
                 }
+            }else{
+                $museum["empty"] = true;
+                $nodata ++;
             }
-            $rs["museum"][] = array("mid"=>$k,"name"=>$name,"data"=>$value,"distance"=>$distance);
+            $rs["museum"][] = $museum;
             if($value && $value < $calculate["average"]){
                 $rs["less"] ++;
             }elseif ($value && $value == $calculate["average"]){
@@ -202,7 +210,7 @@ class Area extends MY_Controller{
                 $rs["more"] ++;
             }
         }
-        $rs["all"] = $all;
+        $rs["nodata"] = $nodata;
         return $rs;
     }
 
