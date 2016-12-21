@@ -116,11 +116,11 @@ class History extends MY_Controller{
                     ->where("mid", $mid)
                     ->get("data_complex")
                     ->result_array();
-                if($dc_datas && $dc_datas[0]['scatter_temperature']) //排除null值
+                if($dc_datas && $dc_datas[0]['scatter_temperature'] != 0) //排除离散为0的空数据
                     $tc_datas[$mid][$date] = (float)$dc_datas[0]['scatter_temperature'];
                 else $tc_datas[$mid][$date] = null;
 
-                if($dc_datas && $dc_datas[0]['scatter_humidity'])
+                if($dc_datas && $dc_datas[0]['scatter_humidity'] != 0)
                     $hc_datas[$mid][$date] = (float)$dc_datas[0]['scatter_humidity'];
                 else $hc_datas[$mid][$date] = null;
             }
