@@ -175,7 +175,7 @@ class Area extends MY_Controller{
         $rs = array();
         $rs["less"] = $rs["equal"] = $rs["more"] = 0;
         $rs["attention"] = array();
-        $rs["all"] = sizeof($data);
+        $rs["all"] = sizeof($this->museum);
         $nodata = 0;
         $rs["standard"] = $calculate["standard"];
         $rs["average"] = $calculate["average"];
