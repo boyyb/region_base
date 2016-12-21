@@ -9,7 +9,7 @@
 if(!function_exists("calculate")){
     function calculate($arr){
         foreach ($arr as $key => $value){
-            if($value == 0){
+            if($value === 0){
                 unset($arr[$key]);
             }
         }

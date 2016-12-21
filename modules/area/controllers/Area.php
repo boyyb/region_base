@@ -186,9 +186,11 @@ class Area extends MY_Controller{
         }
         foreach ($this->museum as $k => $name){
             $value = (array_key_exists($k,$data) && $data[$k])?$data[$k]:0;
-            $distance = 0;
+            $museum = array("mid"=>$k,"name"=>$name);
             if($value){
+                $museum["data"] = $value;
                 $distance = $value - $calculate["average"];
+                $museum["distance"] = $distance;
                 $z = $calculate["standard"]?($value - $calculate["average"]) / $calculate["standard"]:0;
                 if($type == "standard" && $z < -2){
                     $rs["attention"][] = $this->museum[$k];
@@ -196,9 +198,10 @@ class Area extends MY_Controller{
                     $rs["attention"][] = $this->museum[$k];
                 }
             }else{
+                $museum["empty"] = true;
                 $nodata ++;
             }
-            $rs["museum"][] = array("mid"=>$k,"name"=>$name,"data"=>$value,"distance"=>$distance);
+            $rs["museum"][] = $museum;
             if($value && $value < $calculate["average"]){
                 $rs["less"] ++;
             }elseif ($value && $value == $calculate["average"]){
