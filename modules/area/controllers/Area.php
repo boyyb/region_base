@@ -66,7 +66,10 @@ class Area extends MY_Controller{
                     $abnormal_count += $value[$param."_abnormal"];
                     $total_count += $value[$param."_total"];
                 }
-                $data_standard[$value["id"]][] = $total_count?round(($total_count - $abnormal_count) / $total_count,4):0;
+                if($total_count){
+                    $data_standard[$value["id"]][] = round(($total_count - $abnormal_count) / $total_count,4);
+                }
+
             }
         }
 
