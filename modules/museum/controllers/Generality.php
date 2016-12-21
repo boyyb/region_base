@@ -15,7 +15,7 @@ class Generality extends REST_Controller{
         $museum = $this->db->select("id,name,site_url")->get("museum")->result_array();
         $this->museum_source = $museum;
         foreach ($museum as $value){
-            $this->museum[$value["id"]] = $value["name"];
+            $this->museum[$value["id"]] = array("name"=>$value["name"],"site_url"=>$value["site_url"]);
         }
     }
 
@@ -64,8 +64,8 @@ class Generality extends REST_Controller{
         foreach ($base as $value) {
             if ($value["mid"]) {
                 $datas = $data = array();
-                $legend = array($this->museum[$value["mid"]],"区域平均");
-                $data["name"] = $this->museum[$value["mid"]];
+                $legend = array($this->museum[$value["mid"]]["name"],"区域平均");
+                $data["name"] = $this->museum[$value["mid"]]["name"];
                 $data["value"][] = $relic[] = $value["count_relic"];
                 $data["value"][] = $precious_relic[] = $value["count_precious_relic"];
                 $data["value"][] = $fixed_exhibition[] =  $value["count_fixed_exhibition"];
@@ -124,7 +124,8 @@ class Generality extends REST_Controller{
             $result[$key]["data"][] = array("name"=>"区域平均","value"=>$average);
             // 跳转地址
             $code = API_encode('base', array('username'=>$this->_user['username'], 'key'=>date('Y-m-d')));
-            $result[$key]['url'] = "http://192.168.8.11/museum_web/dist/main?code={$code}";
+
+            $result[$key]['url'] = $this->museum[$value["mid"]]["site_url"]."?code={$code}";
         }
 
         $this->response($result);
