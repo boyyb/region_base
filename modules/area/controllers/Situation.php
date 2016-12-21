@@ -290,8 +290,8 @@ class Situation extends MY_Controller{
                 "list"=>array(
                     array(
                         "compliance"=>(isset($datas[$val['id']]) && $datas[$val['id']]['standard_percent'] !== null)?round($datas[$val['id']]['standard_percent'],4)*100 . "%":null,//0 !== null
-                        "temperature_scatter"=>(isset($datas[$val['id']]) && $datas[$val['id']]['scatter_temperature'])?$datas[$val['id']]['scatter_temperature']*100 . "%":null,
-                        "humidity_scatter"=>(isset($datas[$val['id']]) && $datas[$val['id']]['scatter_humidity'])?$datas[$val['id']]['scatter_humidity']*100 . "%":null,
+                        "temperature_scatter"=>(isset($datas[$val['id']]) && $datas[$val['id']]['scatter_temperature'] != 0)?$datas[$val['id']]['scatter_temperature']*100 . "%":null,
+                        "humidity_scatter"=>(isset($datas[$val['id']]) && $datas[$val['id']]['scatter_humidity'] != 0)?$datas[$val['id']]['scatter_humidity']*100 . "%":null,
                         "is_wave_abnormal"=>isset($wave_data[$val['id']])?"是":"无",
                         "is_value_abnormal"=>isset($abnormal_data[$val['id']])?"是":"无"
                     )
@@ -369,16 +369,16 @@ class Situation extends MY_Controller{
             if($dc_datas){
                 $datas[$date] = array(
                     "mid"=>$mid,
-                    "scatter_temperature"=>($dc_datas[0]['scatter_temperature']*100)."%",
-                    "scatter_humidity"=>($dc_datas[0]['scatter_humidity']*100)."%",
-                    "standard_percent"=>(round($dc_datas[0]['standard_percent'],4)*100)."%",
+                    "scatter_temperature"=>$dc_datas[0]['scatter_temperature'] != 0?($dc_datas[0]['scatter_temperature']*100)."%":null,
+                    "scatter_humidity"=>$dc_datas[0]['scatter_humidity'] != 0?($dc_datas[0]['scatter_humidity']*100)."%":null,
+                    "standard_percent"=>$dc_datas[0]['standard_percent'] !== null?(round($dc_datas[0]['standard_percent'],4)*100)."%":null,
                 );
             }else{
                 $datas[$date] = array(
                     "mid"=>$mid,
-                    "scatter_temperature"=>"0",
-                    "scatter_humidity"=>"0",
-                    "standard_percent"=>"0"
+                    "scatter_temperature"=>null,
+                    "scatter_humidity"=>null,
+                    "standard_percent"=>null
                 );
             }
         }
