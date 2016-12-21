@@ -124,7 +124,7 @@ class Generality extends REST_Controller{
             $result[$key]["data"][] = array("name"=>"区域平均","value"=>$average);
             // 跳转地址
             $code = API_encode('base', array('username'=>$this->_user['username'], 'key'=>date('Y-m-d')));
-            $result[$key]['url'] = "http://127.0.0.1/museum_web/dist/main?code={$code}";
+            $result[$key]['url'] = "http://192.168.8.11/museum_web/dist/main?code={$code}";
         }
 
         $this->response($result);
