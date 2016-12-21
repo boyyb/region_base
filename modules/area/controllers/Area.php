@@ -175,7 +175,8 @@ class Area extends MY_Controller{
         $rs = array();
         $rs["less"] = $rs["equal"] = $rs["more"] = 0;
         $rs["attention"] = array();
-        $all = 0;
+        $rs["all"] = sizeof($data);
+        $nodata = 0;
         $rs["standard"] = $calculate["standard"];
         $rs["average"] = $calculate["average"];
         if($type == "standard"){
@@ -187,7 +188,6 @@ class Area extends MY_Controller{
             $value = (array_key_exists($k,$data) && $data[$k])?$data[$k]:0;
             $distance = 0;
             if($value){
-                $all ++;
                 $distance = $value - $calculate["average"];
                 $z = $calculate["standard"]?($value - $calculate["average"]) / $calculate["standard"]:0;
                 if($type == "standard" && $z < -2){
@@ -195,6 +195,8 @@ class Area extends MY_Controller{
                 }elseif ($type == "scatter" && $z > 2){
                     $rs["attention"][] = $this->museum[$k];
                 }
+            }else{
+                $nodata ++;
             }
             $rs["museum"][] = array("mid"=>$k,"name"=>$name,"data"=>$value,"distance"=>$distance);
             if($value && $value < $calculate["average"]){
@@ -205,7 +207,7 @@ class Area extends MY_Controller{
                 $rs["more"] ++;
             }
         }
-        $rs["all"] = $all;
+        $rs["nodata"] = $nodata;
         return $rs;
     }
 
