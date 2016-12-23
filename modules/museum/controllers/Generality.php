@@ -12,10 +12,10 @@ class Generality extends REST_Controller{
     function __construct()
     {
         parent::__construct();
-        $museum = $this->db->select("id,name,site_url")->get("museum")->result_array();
+        $museum = $this->db->select("id,name,site_url,no")->get("museum")->result_array();
         $this->museum_source = $museum;
         foreach ($museum as $value){
-            $this->museum[$value["id"]] = array("name"=>$value["name"],"site_url"=>$value["site_url"]);
+            $this->museum[$value["id"]] = $value;
         }
     }
 
@@ -119,12 +119,15 @@ class Generality extends REST_Controller{
             $total_all_micro?round(($total_all_micro - $abnormal_all_micro)/$total_all_micro,4)*100:0,
             $total_all_small?round(($total_all_small - $abnormal_all_small)/$total_all_small,4)*100:0
         );
+
+
+        $this->load->library('rest_des');
         foreach ($result as $key => $value){
             $result[$key]["indicator"] = $indicator_compliance;
             $result[$key]["data"][] = array("name"=>"区域平均","value"=>$average);
             // 跳转地址
-            $code = API_encode('base', array('username'=>$this->_user['username'], 'key'=>date('Y-m-d')));
-
+            $data = array('username'=>$this->_user['username'], 'time'=>time());
+            $code = base64_encode($this->rest_des->encrypt(json_encode($data), $this->museum[$value["mid"]]["no"]));
             $result[$key]['url'] = $this->museum[$value["mid"]]["site_url"]."?code={$code}";
         }
 
