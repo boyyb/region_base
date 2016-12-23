@@ -382,7 +382,7 @@ class Area extends MY_Controller{
                 "depid"=>$item["id"],
                 "max"=>$item["max"],
                 "min"=>$item["min"],
-                "distance"=>$item["max"] - $item["min"],
+                "distance"=>round($item["max"] - $item["min"],2),
                 "middle"=>$item["middle"],
                 "average"=>$item["average"],
                 "count_abnormal"=>$item["count_abnormal"],
