@@ -27,7 +27,7 @@ class Analysis extends MY_Controller{ //按时间对比
     public function all_compliance_get(){ //达标率 雷达图
         $datas = $this->depart_table();
         if(sizeof($this->env_param) > 1) { //雷达图
-            $indicator_compliance = array(array("name"=>"全参数平均达标率","max"=>100));
+            $indicator_compliance = array(array("name"=>"平均达标率","max"=>100));
             $indicator = array(
                 "temperature" => array("name"=>"温度","max"=>100),
                 "humidity" => array("name"=>"湿度","max"=>100),
@@ -52,7 +52,7 @@ class Analysis extends MY_Controller{ //按时间对比
     public function all_scatter_get(){ //离散系数 雷达图
         $datas = $this->depart_table();
         if(sizeof($this->env_param) > 1) { //雷达图
-            $indicator_scatter = array(array("name" => "全参数平均离散系数"));
+            $indicator_scatter = array(array("name" => "平均离散系数"));
             $indicator = array(
                 "temperature" => array("name" => "温度"),
                 "humidity" => array("name" => "湿度"),
