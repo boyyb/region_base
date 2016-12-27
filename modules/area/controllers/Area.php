@@ -829,7 +829,7 @@ class Area extends MY_Controller{
 //            }
 //        }
 //        $indicator_compliance = array(
-//            array("name"=>"全参数平均达标率","max"=>1),
+//            array("name"=>"平均达标率","max"=>1),
 //            array("name"=>"温度","max"=>1),
 //            array("name"=>"湿度","max"=>1),
 //            array("name"=>"光照","max"=>1),
@@ -837,7 +837,7 @@ class Area extends MY_Controller{
 //            array("name"=>"有机挥发物","max"=>1)
 //        );
 //        $indicator_scatter = array(
-//            array("name"=>"全参数平均离散系数","max"=>0.15),
+//            array("name"=>"平均离散系数","max"=>0.15),
 //            array("name"=>"温度","max"=>0.15),
 //            array("name"=>"湿度","max"=>0.15),
 //            array("name"=>"光照","max"=>0.15),
@@ -870,7 +870,7 @@ class Area extends MY_Controller{
             }
         }
         if(sizeof($this->env_param) > 1){ //雷达图
-            $indicator_compliance = array(array("name"=>"全参数平均达标率","max"=>100));
+            $indicator_compliance = array(array("name"=>"平均达标率","max"=>100));
             $indicator = array(
                 "temperature" => array("name"=>"温度","max"=>100),
                 "humidity" => array("name"=>"湿度","max"=>100),
@@ -910,7 +910,7 @@ class Area extends MY_Controller{
         }
         $datas = $this->depart_table($mid_arr);
         if(sizeof($this->env_param) > 1) { //雷达图
-            $indicator_scatter = array(array("name" => "全参数平均离散系数"));
+            $indicator_scatter = array(array("name" => "平均离散系数"));
             $indicator = array(
                 "temperature" => array("name" => "温度"),
                 "humidity" => array("name" => "湿度"),
