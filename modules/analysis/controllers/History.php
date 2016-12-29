@@ -129,8 +129,8 @@ class History extends MY_Controller{
 
         if($this->get("definite_time") == "week") $date = $this->week;
         else $date = $this->date_list;
-        $ret['temperature']['title'] = "历史稳定性-温度（离散系数）";
-        $ret['humidity']['title'] = "历史稳定性-湿度（离散系数）";
+        $ret['temperature']['title'] = "历史离散系数-温度";
+        $ret['humidity']['title'] = "历史离散系数-湿度";
         $ret['temperature']['names'] = $ret['humidity']['names'] =$names;
         $ret['temperature']['date'] = $ret['humidity']['date'] =$date;
         //温度
