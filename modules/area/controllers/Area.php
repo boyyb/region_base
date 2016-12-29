@@ -78,7 +78,7 @@ class Area extends MY_Controller{
     }
 
     private function data_scatter(){
-        $data = $this->db->select("c.mid,c.scatter_temperature,c.scatter_humidity")
+        $data = $this->db->select("c.mid,c.scatter_temperature,c.scatter_humidity,c.temperature_total,c.humidity_total")
             ->join("museum m","m.id=c.mid")
             ->where("c.date",$this->date)
             ->where("c.env_type",$this->env_type)
@@ -86,8 +86,12 @@ class Area extends MY_Controller{
             ->result_array();
         $datas["scatter_temperature"] = $datas["scatter_humidity"] = array();
         foreach ($data as $value){
-            $datas["scatter_temperature"][$value["mid"]] = $value["scatter_temperature"];
-            $datas["scatter_humidity"][$value["mid"]] = $value["scatter_humidity"];
+            if($value["temperature_total"] != 0){
+                $datas["scatter_temperature"][$value["mid"]] = $value["scatter_temperature"];
+            }
+            if($value["humidity_total"] != 0) {
+                $datas["scatter_humidity"][$value["mid"]] = $value["scatter_humidity"];
+            }
         }
 
         return $datas;
