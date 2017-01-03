@@ -58,7 +58,7 @@ class Situation extends MY_Controller{
     }
 
     //达标率
-    protected function _pie_compliance(){
+    public function pie_compliance_get(){
         $env = $this->env_type;
         $param = $this->env_param;
 
@@ -104,34 +104,23 @@ class Situation extends MY_Controller{
                 "value"=>0,
                 "name"=>$v['name']);
         }
-        return $sp_data;
-        //$this->response($sp_data);
+
+        $this->response($sp_data);
     }
 
-    //接口调用-达标率
-    public function pie_compliance_get(){
-        $this->response($this->_pie_compliance());
-    }
 
-    //稳定性(温度湿度)
-    protected function pie_stability(){
-        $scatter = array();
+    //接口调用-离散系数-温度
+    public function pie_scatter_temperature_get(){
         $env = $this->env_type;
-        $ts = array( //温度
+        $ts = array( //区间阈值
             1=>array("name"=>"0~4%(含)","min"=>0,"max"=>0.04),
             2=>array("name"=>"4%~6%(含)","min"=>0.04,"max"=>0.06),
             3=>array("name"=>"6%~7%(含)","min"=>0.06,"max"=>0.07),
             4=>array("name"=>">7%","min"=>0.07,"max"=>9999)
         );
-        $hs = array( //湿度
-            1=>array("name"=>"0~2%(含)","min"=>0,"max"=>0.02),
-            2=>array("name"=>"2%~3%(含)","min"=>0.02,"max"=>0.03),
-            3=>array("name"=>"3%~3.5%(含)","min"=>0.03,"max"=>0.035),
-            4=>array("name"=>">3.5%","min"=>0.035,"max"=>9999)
-        );
 
         $dc_datas = $this->db
-            ->select("distinct(mid),scatter_temperature,scatter_humidity")
+            ->select("distinct(mid),scatter_temperature,temperature_total")
             ->where("date",$this->date)
             ->where("env_type",$env)
             ->order_by("mid asc")
@@ -139,16 +128,14 @@ class Situation extends MY_Controller{
             ->result_array();
         if(!$dc_datas) $this->response(array("error"=>"没查询到数据！"));
 
-        //温湿度各博物馆的离散数据
+        //各博物馆的离散数据列表
         foreach($dc_datas as $v){
-            $data["temperature_scatter"][] = $v["scatter_temperature"];
-            $data["humidity_scatter"][] = $v["scatter_humidity"];
+            if($v['temperature_total']>0) $list[] = $v['scatter_temperature']; //存在温度数据
         }
 
-        //温度统计
+        //区间个数统计
         foreach($ts as $k=>$v){
-            foreach($data['temperature_scatter'] as $v1){
-                if(!$v1) continue;
+            foreach($list as $v1){
                 if($v1<=$v['max'] && $v1>$v['min']) $data1[$k][] = $v1;
             }
             if(isset($data1[$k])) $ts_data[] = array(
@@ -158,10 +145,33 @@ class Situation extends MY_Controller{
                 "value"=>0,
                 "name"=>$v['name']);
         }
-        //湿度统计
+
+        $this->response($ts_data);
+    }
+
+
+    //接口调用-离散系数-湿度
+    public function pie_scatter_humidity_get(){
+        $hs = array( //湿度
+            1=>array("name"=>"0~2%(含)","min"=>0,"max"=>0.02),
+            2=>array("name"=>"2%~3%(含)","min"=>0.02,"max"=>0.03),
+            3=>array("name"=>"3%~3.5%(含)","min"=>0.03,"max"=>0.035),
+            4=>array("name"=>">3.5%","min"=>0.035,"max"=>9999)
+        );
+        $scatter = "AVG(standard/average) as scatter";
+        $dep_datas = $this->db
+            ->select('mid,env_type,param,'.$scatter)
+            ->where("date",$this->date)
+            ->where("env_type",$this->env_type)
+            ->where_in("param",array(1,2,3,10,12))
+            ->group_by("mid")
+            ->get("data_envtype_param")
+            ->result_array();
+        if(!$dep_datas) $this->response(array("error"=>"没有查询到数据！"));
+        $list = array_column($dep_datas,"scatter");
         foreach($hs as $k=>$v){
-            foreach($data['humidity_scatter'] as $v1){
-                if(!$v1) continue;
+            foreach($list as $v1){
+                $v1 = number_format($v1,4);
                 if($v1<=$v['max'] && $v1>$v['min']) $data2[$k][] = $v1;
             }
             if(isset($data2[$k])) $hs_data[] = array(
@@ -171,36 +181,9 @@ class Situation extends MY_Controller{
                 "value"=>0,
                 "name"=>$v['name']);
         }
-        $scatter['temperature'] = $ts_data;
-        $scatter['humidity'] = $hs_data;
-        return $scatter;
-    }
 
-    //温度稳定性
-    public function pie_scatter_temperature_get(){
-        $data = $this->pie_stability();
-        $list = array_column($data['temperature'],"value");
-        if(count(array_filter($list)) == 0) $this->response(array("error"=>"没查询到数据！"));
-        $this->response($data['temperature']);
+        $this->response($hs_data);
     }
-
-    //湿度稳定性
-    public function pie_scatter_humidity_get(){
-        $data = $this->pie_stability();
-        $list = array_column($data['humidity'],"value");
-        if(count(array_filter($list)) == 0) $this->response(array("error"=>"没查询到数据！"));
-        $this->response($data['humidity']);
-    }
-    //圆环图-数据3合1
-    public function pie(){
-        $data['compliance'] = $this->_pie_compliance();
-        $data1 = $this->pie_stability();
-        $data['temperature_scatter'] = $data1['temperature'];
-        $data['humidity_scatter'] = $data1['humidity'];
-
-        $this->response($data);
-    }
-
 
     //地图-所有博物馆（多博物馆）
     public function map_get(){
@@ -219,7 +202,7 @@ class Situation extends MY_Controller{
             elseif($v=="voc") array_push($params,9);
         }
 
-        //统计接收到的各博物馆下离散、达标率
+        //统计接收到的各博物馆下温度离散、达标率
         $totalstr = '';
         $abnormalstr = '';
         foreach ($param as $v) {
@@ -230,7 +213,7 @@ class Situation extends MY_Controller{
         $abnormalstr = "(".substr($abnormalstr, 1).")";
         $sp = "(".$totalstr."-".$abnormalstr.")/$totalstr "." as standard_percent";
         $dc_datas = $this->db
-            ->select("distinct(mid),scatter_temperature,scatter_humidity,".$sp)
+            ->select("distinct(mid),scatter_temperature,temperature_total,".$sp)
             ->where("date",$this->date)
             ->where("env_type",$env)
             ->order_by("mid")
@@ -241,6 +224,20 @@ class Situation extends MY_Controller{
             foreach($dc_datas as $v){
                 $datas[$v['mid']] = $v;
             }
+        }
+
+        //统计各个博物馆的离散-湿度
+        $scatter = "AVG(standard/average) as scatter";
+        $dep_datas = $this->db
+            ->select('mid,env_type,param,'.$scatter)
+            ->where("date",$this->date)
+            ->where("env_type",$this->env_type)
+            ->where_in("param",array(1,2,3,10,12))
+            ->group_by("mid")
+            ->get("data_envtype_param")
+            ->result_array();
+        foreach($dep_datas as $v){
+            $scatter_humidity[$v['mid']] = number_format($v['scatter'],4);
         }
 
         //统计各博物馆日波动(温度/湿度)超标情况 不剔除异常值
@@ -289,9 +286,9 @@ class Situation extends MY_Controller{
                 "grid"=>array((float)$val['longitude'],(float)$val['latitude']),
                 "list"=>array(
                     array(
-                        "compliance"=>(isset($datas[$val['id']]) && $datas[$val['id']]['standard_percent'] !== null)?round($datas[$val['id']]['standard_percent'],4)*100 . "%":null,//0 !== null
-                        "temperature_scatter"=>(isset($datas[$val['id']]) && $datas[$val['id']]['scatter_temperature'] != 0)?$datas[$val['id']]['scatter_temperature']*100 . "%":null,
-                        "humidity_scatter"=>(isset($datas[$val['id']]) && $datas[$val['id']]['scatter_humidity'] != 0)?$datas[$val['id']]['scatter_humidity']*100 . "%":null,
+                        "compliance"=>(isset($datas[$val['id']]) && $datas[$val['id']]['temperature_total']>0)?number_format($datas[$val['id']]['standard_percent'],4)*100 . "%":null,
+                        "temperature_scatter"=>(isset($datas[$val['id']]) && $datas[$val['id']]['temperature_total']>0)?$datas[$val['id']]['scatter_temperature']*100 . "%":null,
+                        "humidity_scatter"=>isset($scatter_humidity[$val['id']])?$scatter_humidity[$val['id']]*100 . "%":null,
                         "is_wave_abnormal"=>isset($wave_data[$val['id']])?"是":"无",
                         "is_value_abnormal"=>isset($abnormal_data[$val['id']])?"是":"无"
                     )
@@ -359,8 +356,22 @@ class Situation extends MY_Controller{
         $sp = "(".$totalstr."-".$abnormalstr.")/$totalstr "." as standard_percent";
         $datas = array();
         foreach($date_compare as $date){
+            //统计湿度离散
+            $scatter = "AVG(standard/average) as scatter";
+            $dep_datas = $this->db
+                ->select('mid,env_type,param,'.$scatter)
+                ->where("date","D".$date)
+                ->where("env_type",$this->env_type)
+                ->where_in("param",array(1,2,3,10,12))
+                ->where("mid",$mid)
+                ->group_by("mid")
+                ->get("data_envtype_param")
+                ->result_array();
+            if($dep_datas) $scatter_humidity[$date] = (number_format($dep_datas[0]['scatter'],4)*100)."%";
+            else $scatter_humidity[$date] = null;
+            //统计温度离散、达标率
             $dc_datas = $this->db
-                ->select("distinct(mid),scatter_temperature,scatter_humidity,".$sp)
+                ->select("distinct(mid),scatter_temperature,temperature_total,".$sp)
                 ->where("date","D".$date)
                 ->where("mid",$mid)
                 ->where("env_type",$env)
@@ -369,15 +380,13 @@ class Situation extends MY_Controller{
             if($dc_datas){
                 $datas[$date] = array(
                     "mid"=>$mid,
-                    "scatter_temperature"=>$dc_datas[0]['scatter_temperature'] != 0?($dc_datas[0]['scatter_temperature']*100)."%":null,
-                    "scatter_humidity"=>$dc_datas[0]['scatter_humidity'] != 0?($dc_datas[0]['scatter_humidity']*100)."%":null,
-                    "standard_percent"=>$dc_datas[0]['standard_percent'] !== null?(round($dc_datas[0]['standard_percent'],4)*100)."%":null,
+                    "scatter_temperature"=>$dc_datas[0]['temperature_total']>0?($dc_datas[0]['scatter_temperature']*100)."%":null,
+                    "standard_percent"=>$dc_datas[0]['temperature_total']>0?(round($dc_datas[0]['standard_percent'],4)*100)."%":null,
                 );
             }else{
                 $datas[$date] = array(
                     "mid"=>$mid,
                     "scatter_temperature"=>null,
-                    "scatter_humidity"=>null,
                     "standard_percent"=>null
                 );
             }
@@ -440,7 +449,7 @@ class Situation extends MY_Controller{
                     "date"=>$date_compare[0],
                     "compliance"=> $datas[$date_compare[0]]['standard_percent'],
                     "temperature_scatter"=>$datas[$date_compare[0]]['scatter_temperature'],
-                    "humidity_scatter"=>$datas[$date_compare[0]]['scatter_humidity'],
+                    "humidity_scatter"=>$scatter_humidity[$date_compare[0]],
                     "is_wave_abnormal"=>$wave_data[$date_compare[0]]?"是":"无",
                     "is_value_abnormal"=>$abnormal_data[$date_compare[0]]?"是":"无"
                 ),
@@ -448,7 +457,7 @@ class Situation extends MY_Controller{
                     "date"=>$date_compare[1],
                     "compliance"=> $datas[$date_compare[1]]['standard_percent'],
                     "temperature_scatter"=>$datas[$date_compare[1]]['scatter_temperature'],
-                    "humidity_scatter"=>$datas[$date_compare[1]]['scatter_humidity'],
+                    "humidity_scatter"=>$scatter_humidity[$date_compare[1]],
                     "is_wave_abnormal"=>$wave_data[$date_compare[1]]?"是":"无",
                     "is_value_abnormal"=>$abnormal_data[$date_compare[1]]?"是":"无"
                 )
