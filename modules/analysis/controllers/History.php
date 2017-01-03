@@ -104,45 +104,66 @@ class History extends MY_Controller{
         $this->response($ret);
     }
 
-    //稳定性（温度/湿度）- 多博物馆对比
-    protected function scatter(){
-        //各个博物馆分日期显示温度湿度离散数据
+    //温度离散系数- 多博物馆对比
+    public function scatter_temperature_get(){
+        //各个博物馆分日期显示温度离散数据
         foreach($this->mids as $mid) {
             foreach($this->date_list as $date){
                 $dc_datas = $this->db
-                    ->select("mid,date,scatter_temperature,scatter_humidity")
+                    ->select("mid,date,scatter_temperature,temperature_total")
                     ->where("date", "D".$date)
                     ->where("env_type", $this->env_type)
                     ->where("mid", $mid)
                     ->get("data_complex")
                     ->result_array();
-                if($dc_datas && $dc_datas[0]['scatter_temperature'] != 0) //排除离散为0的空数据
-                    $tc_datas[$mid][$date] = (float)$dc_datas[0]['scatter_temperature']*100;
-                else $tc_datas[$mid][$date] = null;
-
-                if($dc_datas && $dc_datas[0]['scatter_humidity'] != 0)
-                    $hc_datas[$mid][$date] = (float)$dc_datas[0]['scatter_humidity']*100;
-                else $hc_datas[$mid][$date] = null;
+                if($dc_datas && $dc_datas[0]['temperature_total'] > 0) //排除空数据
+                    $ts_datas[$mid][$date] = (float)$dc_datas[0]['scatter_temperature']*100;
+                else $ts_datas[$mid][$date] = null;
             }
             $names[] = $this->museum[$mid];
         }
-
         if($this->get("definite_time") == "week") $date = $this->week;
         else $date = $this->date_list;
         $ret['temperature']['title'] = "历史离散系数-温度";
-        $ret['humidity']['title'] = "历史离散系数-湿度";
         $ret['temperature']['names'] = $ret['humidity']['names'] =$names;
         $ret['temperature']['date'] = $ret['humidity']['date'] =$date;
-        //温度
-        foreach($tc_datas as $k=>$v){
+        foreach($ts_datas as $k=>$v){
             $ret['temperature']['list'][] = array(
                 "mid"=>$k,
                 "name"=>$this->museum[$k],
                 "data"=>array_values($v)
             );
         }
-        //湿度
-        foreach($hc_datas as $k=>$v){
+
+        $this->response($ret['temperature']);
+    }
+
+    //湿度离散系数-多博物馆对比
+    public function scatter_humidity_get(){
+        //各个博物馆分日期显示湿度离散数据
+        foreach($this->mids as $mid) {
+            foreach($this->date_list as $date){
+                $scatter = "AVG(standard/average) as scatter";
+                $dep_datas = $this->db
+                    ->select('mid,env_type,param,'.$scatter)
+                    ->where("date","D".$date)
+                    ->where("env_type",$this->env_type)
+                    ->where_in("param",array(1,2,3,10,12))
+                    ->where("mid",$mid)
+                    ->group_by("mid")
+                    ->get("data_envtype_param")
+                    ->result_array();
+                if($dep_datas) $ts_datas[$mid][$date] = (float)number_format($dep_datas[0]['scatter']*100,2);
+                else $ts_datas[$mid][$date] = null;
+            }
+            $names[] = $this->museum[$mid];
+        }
+        if($this->get("definite_time") == "week") $date = $this->week;
+        else $date = $this->date_list;
+        $ret['humidity']['title'] = "历史离散系数-湿度";
+        $ret['humidity']['names'] = $ret['humidity']['names'] =$names;
+        $ret['humidity']['date'] = $ret['humidity']['date'] =$date;
+        foreach($ts_datas as $k=>$v){
             $ret['humidity']['list'][] = array(
                 "mid"=>$k,
                 "name"=>$this->museum[$k],
@@ -150,17 +171,7 @@ class History extends MY_Controller{
             );
         }
 
-        return $ret;
-    }
-
-    public function scatter_temperature_get(){
-        $data = $this->scatter();
-        $this->response($data['temperature']);
-    }
-
-    public function scatter_humidity_get(){
-        $data = $this->scatter();
-        $this->response($data['humidity']);
+        $this->response($ret['humidity']);
     }
 
 }
