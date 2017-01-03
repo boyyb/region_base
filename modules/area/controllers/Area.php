@@ -72,8 +72,6 @@ class Area extends MY_Controller{
 
             }
         }
-
-
         return $data_standard;
     }
 

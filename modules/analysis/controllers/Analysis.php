@@ -153,10 +153,11 @@ class Analysis extends MY_Controller{ //按时间对比
                     $abnormal_count += $value[$param."_abnormal"];
                     $total_count += $value[$param."_total"];
                 }
-                $data_standard[$value["date"]][] = $total_count?round(($total_count - $abnormal_count) / $total_count,4):0;;
+                if($total_count) {
+                    $data_standard[$value["date"]][] = round(($total_count - $abnormal_count) / $total_count, 4);
+                }
             }
         }
-
         return $data_standard;
     }
     
