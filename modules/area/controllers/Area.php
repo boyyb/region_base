@@ -76,7 +76,11 @@ class Area extends MY_Controller{
     }
 
     private function humidity_scatter(){
-        $arr = array("1","2","3","12");
+        if($this->env_type == "展厅"){
+            $arr = array("10");
+        }else{
+            $arr = array("1","2","3","12");
+        }
         $datas = $rs = array();
         $data = $this->db->select("e.mid,e.average,e.standard")
             ->join("museum m","m.id=e.mid")

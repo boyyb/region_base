@@ -324,7 +324,11 @@ class Analysis extends MY_Controller{ //按时间对比
 
 
     private function humidity_scatter(){
-        $arr = array("1","2","3","12");
+        if($this->env_type == "展厅"){
+            $arr = array("10");
+        }else{
+            $arr = array("1","2","3","12");
+        }
         $datas = $rs = array();
         $data = $this->db->select("date,average,standard")
             ->where("env_type",$this->env_type)
