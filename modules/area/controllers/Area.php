@@ -119,8 +119,13 @@ class Area extends MY_Controller{
             if($value["temperature_total"] != 0){
                 $datas["scatter_temperature"][$value["mid"]] = $value["scatter_temperature"];
             }
-            if($value["humidity_total"] != 0 && array_key_exists($value["mid"], $humidity_scatter)) {
-                $datas["scatter_humidity"][$value["mid"]] = $humidity_scatter[$value["mid"]];
+            if($value["humidity_total"] != 0 ) {
+                if(array_key_exists($value["mid"], $humidity_scatter)){
+                    $datas["scatter_humidity"][$value["mid"]] = $humidity_scatter[$value["mid"]];
+                }else{
+                    $datas["scatter_humidity"][$value["mid"]] = $value["scatter_humidity"];
+                }
+
             }
         }
 
