@@ -37,6 +37,7 @@ class Login extends MY_Controller{
         // 同步
         $result['results'] = $this->_sync($row);
         $result['permissions'] = $row['permissions'];
+        $result['access_token'] = $this->_token;
 
         $this->response($result);
     }
