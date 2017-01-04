@@ -322,6 +322,38 @@ class Analysis extends MY_Controller{ //按时间对比
         $this->response(array("xdata"=>$x_humidity,"legend"=>$this->legend,"data"=>$museum_humidity));
     }
 
+
+    private function humidity_scatter(){
+        $arr = array("1","2","3","12");
+        $datas = $rs = array();
+        $data = $this->db->select("date,average,standard")
+            ->where("env_type",$this->env_type)
+            ->where("mid",$this->mid)
+            ->where_in("date",$this->dates)
+            ->where_in("param",$arr)
+            ->get("data_envtype_param")
+            ->result_array();
+        foreach ($data as $value){
+            if($value["average"] != 0){
+                $datas[$value["date"]][] = $value;
+            }
+        }
+
+        foreach ($datas as $date => $values){
+            $sum = array();
+            foreach ($values as $value){
+                $scatter = round($value["standard"] / $value["average"],4);
+                if ($scatter){
+                    $sum[] = $scatter;
+                }
+            }
+            if(!empty($sum)){
+                $rs[$date] = round(array_sum($sum) / sizeof($sum) , 4);
+            }
+        }
+        return $rs;
+    }
+
     private function depart_table(){
         $dates_exist = array();
         $data = array(
@@ -329,6 +361,7 @@ class Analysis extends MY_Controller{ //按时间对比
             "scatter"=>array()
         );
         $params = array_keys(config_item("params"));
+        $humidity_scatter = $this->humidity_scatter();
         $data_complex = $this->db->select("*")
             ->where("env_type",$this->env_type)
             ->where("mid",$this->mid)
@@ -349,8 +382,10 @@ class Analysis extends MY_Controller{ //按时间对比
                             }else{
                                 $standard[] = 0;
                             }
-
-                            if($item["scatter_".$param]){
+                            if($param == "humidity" && array_key_exists($date, $humidity_scatter)) {
+                                $scatter[] = $humidity_scatter[$date]*100;
+                                $scatter_count ++;
+                            }else if($item["scatter_".$param]){
                                 $scatter[] = $item["scatter_".$param]*100;
                                 $scatter_count ++;
                             }else{

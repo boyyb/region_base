@@ -75,6 +75,37 @@ class Area extends MY_Controller{
         return $data_standard;
     }
 
+    private function humidity_scatter(){
+        $arr = array("1","2","3","12");
+        $datas = $rs = array();
+        $data = $this->db->select("e.mid,e.average,e.standard")
+            ->join("museum m","m.id=e.mid")
+            ->where("e.date",$this->date)
+            ->where("e.env_type",$this->env_type)
+            ->where_in("e.param",$arr)
+            ->get("data_envtype_param e")
+            ->result_array();
+        foreach ($data as $value){
+            if($value["average"] != 0){
+                $datas[$value["mid"]][] = $value;
+            }
+        }
+
+        foreach ($datas as $mid => $values){
+            $sum = array();
+            foreach ($values as $value){
+                $scatter = round($value["standard"] / $value["average"],4);
+                if ($scatter){
+                    $sum[] = $scatter;
+                }
+            }
+            if(!empty($sum)){
+                $rs[$mid] = round(array_sum($sum) / sizeof($sum) , 4);
+            }
+        }
+        return $rs;
+    }
+    
     private function data_scatter(){
         $data = $this->db->select("c.mid,c.scatter_temperature,c.scatter_humidity,c.temperature_total,c.humidity_total")
             ->join("museum m","m.id=c.mid")
@@ -83,12 +114,13 @@ class Area extends MY_Controller{
             ->get("data_complex c")
             ->result_array();
         $datas["scatter_temperature"] = $datas["scatter_humidity"] = array();
+        $humidity_scatter = $this->humidity_scatter();
         foreach ($data as $value){
             if($value["temperature_total"] != 0){
                 $datas["scatter_temperature"][$value["mid"]] = $value["scatter_temperature"];
             }
-            if($value["humidity_total"] != 0) {
-                $datas["scatter_humidity"][$value["mid"]] = $value["scatter_humidity"];
+            if($value["humidity_total"] != 0 && array_key_exists($value["mid"], $humidity_scatter)) {
+                $datas["scatter_humidity"][$value["mid"]] = $humidity_scatter[$value["mid"]];
             }
         }
 
@@ -1120,6 +1152,7 @@ class Area extends MY_Controller{
             "scatter"=>array()
         );
         $params = array_keys(config_item("params"));
+        $humidity_scatter = $this->humidity_scatter();
         $data_complex = $this->db->select("c.*")
             ->join("data_complex c","c.mid=m.id")
             ->where("c.env_type",$this->env_type)
@@ -1141,8 +1174,10 @@ class Area extends MY_Controller{
                             }else{
                                 $standard[] = 0;
                             }
-
-                            if($item["scatter_".$param]){
+                            if($param == "humidity" && array_key_exists($mid, $humidity_scatter)) {
+                                $scatter[] = $humidity_scatter[$mid]*100;
+                                $scatter_count ++;
+                            }else if($item["scatter_".$param]){
                                 $scatter[] = $item["scatter_".$param]*100;
                                 $scatter_count ++;
                             }else{
