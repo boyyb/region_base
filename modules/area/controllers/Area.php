@@ -82,7 +82,7 @@ class Area extends MY_Controller{
             $arr = array("1","2","3","12");
         }
         $datas = $rs = array();
-        $data = $this->db->select("e.mid,e.average,e.standard")
+        $data = $this->db->select("e.id,e.mid,e.average,e.standard")
             ->join("museum m","m.id=e.mid")
             ->where("e.date",$this->date)
             ->where("e.env_type",$this->env_type)
@@ -94,7 +94,7 @@ class Area extends MY_Controller{
                 $datas[$value["mid"]][] = $value;
             }
         }
-
+        
         foreach ($datas as $mid => $values){
             $sum = array();
             foreach ($values as $value){
