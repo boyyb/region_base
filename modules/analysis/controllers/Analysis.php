@@ -67,10 +67,10 @@ class Analysis extends MY_Controller{ //按时间对比
                 }
             }
             $max = $scatters?max($scatters):0;
-            $indicator_scatter[0]["max"] = $max;
+            $indicator_scatter[0]["max"] = intval($max)+1;
             foreach ($indicator as $param => $value) {
                 if (in_array($param,$this->env_param)) {
-                    $value["max"] = $max;
+                    $value["max"] = intval($max)+1;
                     $indicator_scatter[] = $value;
                 }
             }
